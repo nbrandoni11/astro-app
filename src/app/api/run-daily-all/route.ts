@@ -1,7 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export async function GET() {
+function getBaseUrl(req: NextRequest) {
+    const host = req.headers.get("host");
+    const protocol = host?.includes("localhost") ? "http" : "https";
+    return `${protocol}://${host}`;
+}
+
+export async function GET(req: NextRequest) {
     try {
         const { data: users, error } = await supabaseAdmin
             .from("users")
@@ -19,10 +25,11 @@ export async function GET() {
             );
         }
 
+        const baseUrl = getBaseUrl(req);
         const results = [];
 
         for (const user of users || []) {
-            const response = await fetch("http://localhost:3000/api/run-daily", {
+            const response = await fetch(`${baseUrl}/api/run-daily`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -48,6 +55,8 @@ export async function GET() {
             results,
         });
     } catch (error: any) {
+        console.error("ERROR RUN-DAILY-ALL:", error);
+
         return NextResponse.json(
             {
                 ok: false,
