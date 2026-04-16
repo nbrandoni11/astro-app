@@ -1,0 +1,43 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-top: 2rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 3rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.value {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-main);
+  font-weight: 500;
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: auto;
+  margin-bottom: 2rem;
+}

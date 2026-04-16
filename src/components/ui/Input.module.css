@@ -1,0 +1,44 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.input {
+  padding: 0.875rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--text-main);
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.input:focus {
+  border-color: var(--text-main);
+}
+
+.input::placeholder {
+  color: var(--border-color); /* A bit darker than border but not too much */
+  opacity: 0.8;
+}
+
+.errorInput {
+  border-color: #D32F2F; /* A subtle red if error */
+}
+
+.errorMessage {
+  font-size: 0.75rem;
+  color: #D32F2F;
+  margin-top: 0.25rem;
+}

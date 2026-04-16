@@ -1,0 +1,42 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-top: 2rem;
+}
+
+.hero {
+  margin-bottom: 6rem;
+  text-align: left;
+}
+
+.ctaWrapper {
+  margin-top: 2rem;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.stepNumber {
+  font-family: var(--font-headings);
+  font-size: 1.25rem;
+  color: var(--text-main);
+  opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    margin-bottom: 8rem;
+  }
+}
