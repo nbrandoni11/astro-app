@@ -7,7 +7,6 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { userId } = body;
 
-        // 1. Obtener usuario
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
@@ -22,14 +21,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Fecha según timezone del usuario
         const today = new Date(
             new Date().toLocaleString("en-US", {
                 timeZone: user.timezone || "UTC",
             })
         );
 
-        // 3. Carta natal
+        // 1. Carta natal
         const natal = await getNatalChart({
             day: user.birth_day,
             month: user.birth_month,
@@ -49,7 +47,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 4. Tránsitos diarios
+        // 2. Tránsitos diarios
         const transits = await getDailyTransits({
             day: user.birth_day,
             month: user.birth_month,
@@ -72,7 +70,6 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 5. Generación con OpenAI
         const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -86,50 +83,72 @@ export async function POST(req: NextRequest) {
                     {
                         role: "system",
                         content: `
-Sos un astrólogo experto.
+Sos un astrólogo experto y preciso.
 
-Tu tarea es generar un horóscopo diario PERSONALIZADO.
+Tu tarea es escribir una lectura diaria astrológica personalizada en español, basada en carta natal + tránsitos del día.
 
-Reglas obligatorias:
-- Escribir en español
-- Máximo 220 palabras
-- Tono directo, preciso, sin frases genéricas
-- No explicar astrología
-- No mencionar "transits", "houses", "aspects"
-- Interpretar directamente como realidad vivida
-- Foco en:
-  - decisiones
-  - tensión interna
-  - vínculos
-  - energía del día
-
-Estilo:
-- firme
+ESTILO:
+- profesional
+- técnico pero legible
 - psicológico
-- concreto
-- sin espiritualidad vaga
-- sin frases tipo "puede ser"
+- específico
+- nada genérico
+- nada de espiritualidad vacía
+- nada de frases tipo "puede ser" o "el universo te pide"
 
-El texto debe sentirse como algo que describe exactamente lo que la persona está viviendo hoy.
+IMPORTANTE:
+- Sí podés mencionar elementos técnicos astrológicos, pero bien integrados al texto
+- Ejemplo correcto: "Venus natal activada por el Sol y Quirón"
+- Ejemplo incorrecto: listas robóticas de aspectos sin interpretación
+
+FORMATO OBLIGATORIO:
+Usá secciones con estos títulos exactos:
+
+Panorama general
+Trabajo y dinero
+Relaciones
+Energía interna
+Síntesis del día
+
+REGLAS:
+- entre 300 y 350 palabras
+- cada sección debe tener contenido real, no relleno
+- explicá qué tránsito o activación sostiene cada lectura
+- no enumeres todos los aspectos: priorizá los más relevantes
+- si hay tensión fuerte, decilo con claridad
+- si hay apoyos, mencionarlos también
+- el texto tiene que sentirse como una lectura seria, premium y concreta
+
+OBJETIVO:
+Que la persona sienta que esto está técnicamente fundamentado y, al mismo tiempo, profundamente personalizado.
             `,
                     },
                     {
                         role: "user",
-                        content: JSON.stringify({
-                            natal,
-                            transits,
-                        }),
+                        content: `
+Generá la lectura diaria para esta persona.
+
+Fecha local del usuario:
+${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}
+
+Timezone del usuario:
+${user.timezone}
+
+Carta natal:
+${JSON.stringify(natal)}
+
+Tránsitos diarios:
+${JSON.stringify(transits)}
+            `,
                     },
                 ],
             }),
         });
 
         const aiData = await aiRes.json();
-
         const horoscopeText =
             aiData?.choices?.[0]?.message?.content || "Sin resultado";
 
-        // 6. Guardar en DB
         const formattedDate = `${today.getFullYear()}-${String(
             today.getMonth() + 1
         ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -152,7 +171,6 @@ El texto debe sentirse como algo que describe exactamente lo que la persona est�
             });
         }
 
-        // 7. Respuesta final
         return NextResponse.json({
             ok: true,
             user: user.full_name,
