@@ -2,23 +2,45 @@ export async function getNatalChart(data: any) {
   const res = await fetch("https://json.astrologyapi.com/v1/western_chart_data", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.ASTROLOGY_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "x-astrologyapi-key": process.env.ASTROLOGY_API_TOKEN!,
     },
-    body: JSON.stringify(data),
+    body: new URLSearchParams({
+      day: String(data.day),
+      month: String(data.month),
+      year: String(data.year),
+      hour: String(data.hour),
+      min: String(data.min),
+      lat: String(data.lat),
+      lon: String(data.lon),
+      tzone: String(data.tzone),
+      house_type: "placidus",
+    }),
   });
 
   return res.json();
 }
 
 export async function getDailyTransits(data: any) {
-  const res = await fetch("https://json.astrologyapi.com/v1/transit_planet", {
+  const res = await fetch("https://json.astrologyapi.com/v1/natal_transits/daily", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.ASTROLOGY_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "x-astrologyapi-key": process.env.ASTROLOGY_API_TOKEN!,
     },
-    body: JSON.stringify(data),
+    body: new URLSearchParams({
+      day: String(data.day),
+      month: String(data.month),
+      year: String(data.year),
+      hour: String(data.hour),
+      min: String(data.min),
+      lat: String(data.lat),
+      lon: String(data.lon),
+      tzone: String(data.tzone),
+      transit_day: String(data.transit_day),
+      transit_month: String(data.transit_month),
+      transit_year: String(data.transit_year),
+    }),
   });
 
   return res.json();
