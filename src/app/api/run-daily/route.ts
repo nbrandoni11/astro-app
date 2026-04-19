@@ -108,6 +108,7 @@ Trabajo y dinero
 Relaciones
 Energía interna
 Síntesis del día
+Base astrológica del día
 
 REGLAS CLAVE:
 
@@ -116,17 +117,24 @@ Elegí SOLO los 3 a 5 aspectos más relevantes del día.
 No describas todo.
 
 2. DOBLE CAPA
-Cada interpretación debe incluir:
-- lo que está pasando objetivamente (energía / dinámica)
+La lectura principal debe incluir:
+- lo que está pasando objetivamente
 - cómo puede sentirse internamente la persona
+- qué conviene hacer o evitar
 
-3. TÉCNICA VISIBLE (pero integrada)
-Podés mencionar:
+3. TÉCNICA SEPARADA
+NO mezcles demasiada técnica dentro del cuerpo principal.
+La lectura principal debe ser fluida, clara y agradable de leer.
+
+La técnica debe ir al final, en la sección:
+"Base astrológica del día"
+
+Ahí sí podés mencionar:
 - conjunciones
 - oposiciones
 - cuadraturas
-
-Siempre integradas en lenguaje natural.
+- planeta natal / planeta en tránsito
+- casa activada
 
 4. TONO
 - No juzgar
@@ -148,10 +156,21 @@ No usar:
 - lenguaje ambiguo
 
 7. LONGITUD
-Entre 350 y 500 palabras.
+Entre 350 y 500 palabras total.
+
+8. PRECISIÓN Y TIMING
+El texto debe sentirse actual y específico del día.
+Evitar frases neutras o demasiado generales.
+
+9. BASE TÉCNICA FINAL
+La sección "Base astrológica del día" debe ser breve:
+- 3 a 5 bullets máximo
+- concreta
+- sin explicación larga
+- solo los factores más importantes
 
 OBJETIVO:
-Que la persona sienta que la lectura refleja con precisión su estado emocional y le da claridad estratégica sobre cómo moverse en el día.
+Que la lectura principal sea clara, útil y emocionalmente comprensible, y que la técnica aparezca al final como respaldo y no como peso narrativo.
             `,
                     },
                     {
