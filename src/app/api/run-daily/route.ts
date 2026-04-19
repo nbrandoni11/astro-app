@@ -1,189 +1,96 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getNatalChart, getDailyTransits } from "@/lib/astro-engine";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { userId } = body;
 
-        // 1. Buscar usuario real en Supabase
-        const { data: users, error } = await supabaseAdmin
+        const { data: users } = await supabaseAdmin
             .from("users")
             .select("*")
             .eq("id", userId);
 
         const user = users?.[0];
 
-        if (error || !user) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Usuario no encontrado",
-                    details: error?.message || null,
-                    usersReturned: users || [],
-                },
-                { status: 404 }
-            );
+        if (!user) {
+            return NextResponse.json({ ok: false, error: "Usuario no encontrado" });
         }
 
-        // 2. Fecha local según timezone del usuario
         const today = new Date(
             new Date().toLocaleString("en-US", {
                 timeZone: user.timezone || "UTC",
             })
         );
 
-        // 3. Calcular carta natal
-        const natalRes = await fetch("http://localhost:3000/api/natal-chart", {
+        // 1. Natal
+        const natal = await getNatalChart({
+            day: user.birth_day,
+            month: user.birth_month,
+            year: user.birth_year,
+            hour: user.birth_hour,
+            min: user.birth_min,
+            lat: user.birth_lat,
+            lon: user.birth_lon,
+            tzone: user.birth_tzone,
+        });
+
+        // 2. Transits
+        const transits = await getDailyTransits({
+            day: today.getDate(),
+            month: today.getMonth() + 1,
+            year: today.getFullYear(),
+            hour: 12,
+            min: 0,
+            lat: user.birth_lat,
+            lon: user.birth_lon,
+            tzone: user.birth_tzone,
+        });
+
+        // 3. OpenAI
+        const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
+                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                day: user.birth_day,
-                month: user.birth_month,
-                year: user.birth_year,
-                hour: user.birth_hour,
-                min: user.birth_min,
-                lat: user.birth_lat,
-                lon: user.birth_lon,
-                tzone: user.birth_tzone,
+                model: "gpt-4.1",
+                messages: [
+                    {
+                        role: "user",
+                        content: JSON.stringify({ natal, transits }),
+                    },
+                ],
             }),
         });
 
-        const natal = await natalRes.json();
+        const aiData = await aiRes.json();
+        const horoscopeText =
+            aiData?.choices?.[0]?.message?.content || "Sin resultado";
 
-        if (!natalRes.ok) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Error calculando carta natal",
-                    details: natal,
-                },
-                { status: 500 }
-            );
-        }
-
-        // 4. Calcular tránsitos diarios
-        const transitsRes = await fetch("http://localhost:3000/api/daily-transits", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                day: user.birth_day,
-                month: user.birth_month,
-                year: user.birth_year,
-                hour: user.birth_hour,
-                min: user.birth_min,
-                lat: user.birth_lat,
-                lon: user.birth_lon,
-                tzone: user.birth_tzone,
-                transit_day: today.getDate(),
-                transit_month: today.getMonth() + 1,
-                transit_year: today.getFullYear(),
-            }),
-        });
-
-        const transits = await transitsRes.json();
-
-        if (!transitsRes.ok) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Error calculando tránsitos diarios",
-                    details: transits,
-                },
-                { status: 500 }
-            );
-        }
-
-        // 5. Generar horóscopo
-        const horoscopeRes = await fetch("http://localhost:3000/api/generate-horoscope", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                natal,
-                transits,
-            }),
-        });
-
-        const horoscope = await horoscopeRes.json();
-
-        if (!horoscopeRes.ok) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Error generando horóscopo",
-                    details: horoscope,
-                },
-                { status: 500 }
-            );
-        }
-
-        // 6. Guardar horóscopo en Supabase
-        const horoscopeText = horoscope?.horoscope || null;
-
-        if (!horoscopeText) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "No se recibió texto de horóscopo",
-                    details: horoscope,
-                },
-                { status: 500 }
-            );
-        }
-
+        // 4. Guardar
         const formattedDate = `${today.getFullYear()}-${String(
             today.getMonth() + 1
         ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-        const { error: insertError } = await supabaseAdmin
-            .from("daily_horoscopes")
-            .insert({
-                user_id: user.id,
-                horoscope_text: horoscopeText,
-                horoscope_date: formattedDate,
-                timezone_used: user.timezone,
-                status: "generated",
-            });
+        await supabaseAdmin.from("daily_horoscopes").insert({
+            user_id: user.id,
+            horoscope_text: horoscopeText,
+            horoscope_date: formattedDate,
+            timezone_used: user.timezone,
+            status: "generated",
+        });
 
-        if (insertError) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Error guardando horóscopo",
-                    details: insertError.message,
-                },
-                { status: 500 }
-            );
-        }
-
-        // 7. Respuesta final
         return NextResponse.json({
             ok: true,
-            user: user.full_name,
-            timezone: user.timezone,
-            localDateUsed: {
-                day: today.getDate(),
-                month: today.getMonth() + 1,
-                year: today.getFullYear(),
-            },
-            horoscope,
+            horoscope: horoscopeText,
         });
-    } catch (error: any) {
-        console.error("ERROR RUN-DAILY:", error);
-
-        return NextResponse.json(
-            {
-                ok: false,
-                error: "Error en run-daily",
-                details: error?.message || "Desconocido",
-            },
-            { status: 500 }
-        );
+    } catch (err: any) {
+        return NextResponse.json({
+            ok: false,
+            error: err?.message || "error",
+        });
     }
 }
