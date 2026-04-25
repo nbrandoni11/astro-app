@@ -7,7 +7,7 @@ function getBaseUrl(req: NextRequest) {
     return `${protocol}://${host}`;
 }
 
-export async function GET(req: NextRequest) {
+async function runDailyAll(req: NextRequest) {
     try {
         const { data: users, error } = await supabaseAdmin
             .from("users")
@@ -66,4 +66,12 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+export async function GET(req: NextRequest) {
+    return runDailyAll(req);
+}
+
+export async function POST(req: NextRequest) {
+    return runDailyAll(req);
 }
