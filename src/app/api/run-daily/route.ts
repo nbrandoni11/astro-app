@@ -33,7 +33,40 @@ export async function POST(req: NextRequest) {
             today.getMonth() + 1
         ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-        // 3. Carta natal
+        // 3. Evitar duplicados: si ya existe horóscopo para este usuario y fecha, devolverlo
+        const { data: existingHoroscopes, error: existingError } =
+            await supabaseAdmin
+                .from("daily_horoscopes")
+                .select("*")
+                .eq("user_id", user.id)
+                .eq("horoscope_date", formattedDate)
+                .limit(1);
+
+        if (existingError) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "Error consultando horóscopo existente",
+                    details: existingError.message,
+                },
+                { status: 500 }
+            );
+        }
+
+        const existingHoroscope = existingHoroscopes?.[0];
+
+        if (existingHoroscope) {
+            return NextResponse.json({
+                ok: true,
+                user: user.full_name,
+                timezone: user.timezone,
+                date: formattedDate,
+                horoscope: existingHoroscope.horoscope_text,
+                reused: true,
+            });
+        }
+
+        // 4. Carta natal
         const natal = await getNatalChart({
             day: user.birth_day,
             month: user.birth_month,
@@ -53,7 +86,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 4. Tránsitos diarios
+        // 5. Tránsitos diarios
         const transits = await getDailyTransits({
             day: user.birth_day,
             month: user.birth_month,
@@ -76,7 +109,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 5. Generación con OpenAI
+        // 6. Generación con OpenAI
         const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -199,7 +232,7 @@ ${JSON.stringify(transits)}
         const horoscopeText =
             aiData?.choices?.[0]?.message?.content || "Sin resultado";
 
-        // 6. Guardar en base de datos
+        // 7. Guardar en base de datos
         const { error: insertError } = await supabaseAdmin
             .from("daily_horoscopes")
             .insert({
@@ -218,13 +251,14 @@ ${JSON.stringify(transits)}
             });
         }
 
-        // 7. Respuesta final
+        // 8. Respuesta final
         return NextResponse.json({
             ok: true,
             user: user.full_name,
             timezone: user.timezone,
             date: formattedDate,
             horoscope: horoscopeText,
+            reused: false,
         });
     } catch (err: any) {
         return NextResponse.json(
