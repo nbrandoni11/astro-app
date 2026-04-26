@@ -31,6 +31,10 @@ async function sendTwilioMessage(to: string, body: string) {
     );
 }
 
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function GET() {
     try {
         const { data: pending, error } = await supabaseAdmin
@@ -66,12 +70,6 @@ export async function GET() {
                     })
                     .eq("id", item.id);
 
-                results.push({
-                    id: item.id,
-                    ok: false,
-                    error: userError?.message || "Usuario no encontrado",
-                });
-
                 continue;
             }
 
@@ -84,12 +82,6 @@ export async function GET() {
                     })
                     .eq("id", item.id);
 
-                results.push({
-                    id: item.id,
-                    ok: false,
-                    error: "Usuario sin teléfono",
-                });
-
                 continue;
             }
 
@@ -101,20 +93,16 @@ export async function GET() {
                     .from("daily_horoscopes")
                     .update({
                         send_status: "error",
-                        send_error: "Faltan whatsapp_message_1 o whatsapp_message_2",
+                        send_error: "Faltan mensajes whatsapp",
                     })
                     .eq("id", item.id);
-
-                results.push({
-                    id: item.id,
-                    ok: false,
-                    error: "Faltan whatsapp_message_1 o whatsapp_message_2",
-                });
 
                 continue;
             }
 
-            const message1 = `Buen día ${user.full_name || ""}.
+            const firstName = user.full_name?.split(" ")[0] || "";
+
+            const message1 = `Buen día ${firstName}.
 
 ${message1Body}
 
@@ -122,29 +110,10 @@ ${message1Body}
 
             const message2 = `${message2Body}
 
-(2/2)
-
-— Open Hearts Club`;
-
-            if (message1.length > 1600 || message2.length > 1600) {
-                await supabaseAdmin
-                    .from("daily_horoscopes")
-                    .update({
-                        send_status: "error",
-                        send_error: `Mensaje excede límite Twilio. M1=${message1.length}, M2=${message2.length}`,
-                    })
-                    .eq("id", item.id);
-
-                results.push({
-                    id: item.id,
-                    ok: false,
-                    error: `Mensaje excede límite Twilio. M1=${message1.length}, M2=${message2.length}`,
-                });
-
-                continue;
-            }
+(2/2)`;
 
             try {
+                // 👉 ENVÍO 1
                 const response1 = await sendTwilioMessage(user.phone_whatsapp, message1);
 
                 if (!response1.ok) {
@@ -158,15 +127,13 @@ ${message1Body}
                         })
                         .eq("id", item.id);
 
-                    results.push({
-                        id: item.id,
-                        ok: false,
-                        error: text,
-                    });
-
                     continue;
                 }
 
+                // 👉 ESPERA para asegurar orden
+                await sleep(1500);
+
+                // 👉 ENVÍO 2
                 const response2 = await sendTwilioMessage(user.phone_whatsapp, message2);
 
                 if (!response2.ok) {
@@ -179,12 +146,6 @@ ${message1Body}
                             send_error: text,
                         })
                         .eq("id", item.id);
-
-                    results.push({
-                        id: item.id,
-                        ok: false,
-                        error: text,
-                    });
 
                     continue;
                 }
@@ -201,11 +162,6 @@ ${message1Body}
                 results.push({
                     id: item.id,
                     ok: true,
-                    sentMessages: 2,
-                    lengths: {
-                        message1: message1.length,
-                        message2: message2.length,
-                    },
                 });
             } catch (err: any) {
                 await supabaseAdmin
@@ -215,12 +171,6 @@ ${message1Body}
                         send_error: err?.message || "Error desconocido",
                     })
                     .eq("id", item.id);
-
-                results.push({
-                    id: item.id,
-                    ok: false,
-                    error: err?.message || "Error desconocido",
-                });
             }
         }
 
