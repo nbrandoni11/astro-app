@@ -5,39 +5,13 @@ type PendingHoroscope = {
     id: string;
     user_id: string;
     horoscope_text: string;
-    users:
-    | {
-        full_name: string | null;
-        phone_whatsapp: string | null;
-    }
-    | {
-        full_name: string | null;
-        phone_whatsapp: string | null;
-    }[]
-    | null;
 };
-
-function getUserFromRelation(item: PendingHoroscope) {
-    if (Array.isArray(item.users)) {
-        return item.users[0] || null;
-    }
-
-    return item.users || null;
-}
 
 export async function GET() {
     try {
         const { data: pending, error } = await supabaseAdmin
             .from("daily_horoscopes")
-            .select(`
-        id,
-        user_id,
-        horoscope_text,
-        users (
-          full_name,
-          phone_whatsapp
-        )
-      `)
+            .select("id, user_id, horoscope_text")
             .eq("send_status", "pending")
             .limit(10);
 
@@ -54,9 +28,33 @@ export async function GET() {
         const results = [];
 
         for (const item of (pending || []) as PendingHoroscope[]) {
-            const user = getUserFromRelation(item);
+            const { data: users, error: userError } = await supabaseAdmin
+                .from("users")
+                .select("id, full_name, phone_whatsapp")
+                .eq("id", item.user_id)
+                .limit(1);
 
-            if (!user?.phone_whatsapp) {
+            const user = users?.[0];
+
+            if (userError || !user) {
+                await supabaseAdmin
+                    .from("daily_horoscopes")
+                    .update({
+                        send_status: "error",
+                        send_error: userError?.message || "Usuario no encontrado",
+                    })
+                    .eq("id", item.id);
+
+                results.push({
+                    id: item.id,
+                    ok: false,
+                    error: userError?.message || "Usuario no encontrado",
+                });
+
+                continue;
+            }
+
+            if (!user.phone_whatsapp) {
                 await supabaseAdmin
                     .from("daily_horoscopes")
                     .update({
