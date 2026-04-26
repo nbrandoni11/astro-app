@@ -3,6 +3,10 @@
     {
       "path": "/api/run-daily-all",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/send-pending-horoscopes",
+      "schedule": "5 6 * * *"
     }
   ]
 }
