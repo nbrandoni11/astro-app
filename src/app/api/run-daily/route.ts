@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getNatalChart, getDailyTransits } from "@/lib/astro-engine";
 
+type HoroscopeAIResponse = {
+    full?: string;
+    whatsapp_message_1?: string;
+    whatsapp_message_2?: string;
+};
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { userId } = body;
 
-        // 1. Obtener usuario
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
@@ -22,7 +27,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 2. Fecha según timezone del usuario
         const today = new Date(
             new Date().toLocaleString("en-US", {
                 timeZone: user.timezone || "UTC",
@@ -33,7 +37,6 @@ export async function POST(req: NextRequest) {
             today.getMonth() + 1
         ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-        // 3. Evitar duplicados: si ya existe horóscopo para este usuario y fecha, devolverlo
         const { data: existingHoroscopes, error: existingError } =
             await supabaseAdmin
                 .from("daily_horoscopes")
@@ -62,11 +65,12 @@ export async function POST(req: NextRequest) {
                 timezone: user.timezone,
                 date: formattedDate,
                 horoscope: existingHoroscope.horoscope_text,
+                whatsappMessage1: existingHoroscope.whatsapp_message_1,
+                whatsappMessage2: existingHoroscope.whatsapp_message_2,
                 reused: true,
             });
         }
 
-        // 4. Carta natal
         const natal = await getNatalChart({
             day: user.birth_day,
             month: user.birth_month,
@@ -86,7 +90,6 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 5. Tránsitos diarios
         const transits = await getDailyTransits({
             day: user.birth_day,
             month: user.birth_month,
@@ -109,7 +112,6 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 6. Generación con OpenAI
         const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -127,6 +129,41 @@ Sos un astrólogo experto.
 
 Tu tarea es generar una lectura diaria personalizada basada en carta natal + tránsitos.
 
+Respondé EXCLUSIVAMENTE en JSON válido, sin markdown externo, sin texto antes ni después.
+
+La respuesta debe tener exactamente esta estructura:
+
+{
+  "full": "...",
+  "whatsapp_message_1": "...",
+  "whatsapp_message_2": "..."
+}
+
+FORMATO OBLIGATORIO DEL CONTENIDO:
+Panorama general
+Trabajo y dinero
+Relaciones
+Energía interna
+Síntesis del día
+Base astrológica del día
+
+DISTRIBUCIÓN OBLIGATORIA PARA WHATSAPP:
+- whatsapp_message_1 debe incluir SOLO:
+  Panorama general
+  Trabajo y dinero
+  Relaciones
+
+- whatsapp_message_2 debe incluir SOLO:
+  Energía interna
+  Síntesis del día
+  Base astrológica del día
+
+LÍMITES PARA WHATSAPP:
+- whatsapp_message_1 debe tener máximo 1400 caracteres.
+- whatsapp_message_2 debe tener máximo 1400 caracteres.
+- No partas secciones entre mensajes.
+- Si hace falta ajustar longitud, resumí dentro de cada sección sin perder claridad.
+
 ESTILO:
 - técnico pero humano
 - preciso
@@ -134,14 +171,6 @@ ESTILO:
 - sin exageraciones
 - sin espiritualidad vaga
 - sin frases genéricas
-
-FORMATO OBLIGATORIO:
-Panorama general
-Trabajo y dinero
-Relaciones
-Energía interna
-Síntesis del día
-Base astrológica del día
 
 REGLAS CLAVE:
 
@@ -189,7 +218,7 @@ No usar:
 - lenguaje ambiguo
 
 7. LONGITUD
-Entre 350 y 500 palabras total.
+El campo "full" debe tener entre 350 y 500 palabras total.
 
 8. PRECISIÓN Y TIMING
 El texto debe sentirse actual y específico del día.
@@ -204,6 +233,11 @@ La sección "Base astrológica del día" debe ser breve:
 
 OBJETIVO:
 Que la lectura principal sea clara, útil y emocionalmente comprensible, y que la técnica aparezca al final como respaldo y no como peso narrativo.
+
+IMPORTANTE:
+- El campo "full" debe contener la lectura completa con las 6 secciones.
+- whatsapp_message_1 y whatsapp_message_2 deben ser versiones listas para enviar por WhatsApp.
+- whatsapp_message_1 + whatsapp_message_2 deben conservar el contenido esencial de full, pero organizado en dos mensajes.
             `,
                     },
                     {
@@ -229,18 +263,64 @@ ${JSON.stringify(transits)}
         });
 
         const aiData = await aiRes.json();
-        const horoscopeText =
-            aiData?.choices?.[0]?.message?.content || "Sin resultado";
+        const rawContent = aiData?.choices?.[0]?.message?.content || "";
 
-        // 7. Guardar en base de datos
+        let parsed: HoroscopeAIResponse;
+
+        try {
+            parsed = JSON.parse(rawContent);
+        } catch {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "OpenAI no devolvió JSON válido",
+                    rawContent,
+                },
+                { status: 500 }
+            );
+        }
+
+        const horoscopeText = parsed.full?.trim();
+        const whatsappMessage1 = parsed.whatsapp_message_1?.trim();
+        const whatsappMessage2 = parsed.whatsapp_message_2?.trim();
+
+        if (!horoscopeText || !whatsappMessage1 || !whatsappMessage2) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "OpenAI devolvió JSON incompleto",
+                    parsed,
+                },
+                { status: 500 }
+            );
+        }
+
+        if (whatsappMessage1.length > 1400 || whatsappMessage2.length > 1400) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "Los mensajes de WhatsApp superan el límite definido",
+                    lengths: {
+                        whatsappMessage1: whatsappMessage1.length,
+                        whatsappMessage2: whatsappMessage2.length,
+                    },
+                    parsed,
+                },
+                { status: 500 }
+            );
+        }
+
         const { error: insertError } = await supabaseAdmin
             .from("daily_horoscopes")
             .insert({
                 user_id: user.id,
                 horoscope_text: horoscopeText,
+                whatsapp_message_1: whatsappMessage1,
+                whatsapp_message_2: whatsappMessage2,
                 horoscope_date: formattedDate,
                 timezone_used: user.timezone,
                 status: "generated",
+                send_status: "pending",
             });
 
         if (insertError) {
@@ -251,13 +331,18 @@ ${JSON.stringify(transits)}
             });
         }
 
-        // 8. Respuesta final
         return NextResponse.json({
             ok: true,
             user: user.full_name,
             timezone: user.timezone,
             date: formattedDate,
             horoscope: horoscopeText,
+            whatsappMessage1,
+            whatsappMessage2,
+            lengths: {
+                whatsappMessage1: whatsappMessage1.length,
+                whatsappMessage2: whatsappMessage2.length,
+            },
             reused: false,
         });
     } catch (err: any) {
