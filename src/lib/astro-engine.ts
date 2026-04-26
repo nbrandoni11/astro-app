@@ -1,3 +1,18 @@
+async function parseApiResponse(res: Response) {
+  const text = await res.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      status: false,
+      msg: "La API devolvió una respuesta que no es JSON",
+      httpStatus: res.status,
+      preview: text.slice(0, 500),
+    };
+  }
+}
+
 export async function getNatalChart(data: any) {
   const res = await fetch("https://json.astrologyapi.com/v1/western_chart_data", {
     method: "POST",
@@ -18,7 +33,7 @@ export async function getNatalChart(data: any) {
     }),
   });
 
-  return res.json();
+  return parseApiResponse(res);
 }
 
 export async function getDailyTransits(data: any) {
@@ -43,5 +58,5 @@ export async function getDailyTransits(data: any) {
     }),
   });
 
-  return res.json();
+  return parseApiResponse(res);
 }
