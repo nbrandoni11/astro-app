@@ -1,30 +1,70 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import styles from './page.module.css';
+"use client";
 
-export default function LandingPage() {
+import { useState } from "react";
+
+export default function SuscripcionPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleCheckout() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch("/api/mp-create-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: "4affe580-890f-4e91-8b4b-ec1eb061e1df",
+          email: "nbrandoni.exe@gmail.com",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        setError(data.error || "Error creando checkout");
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = data.init_point;
+    } catch (err: any) {
+      setError(err?.message || "Error inesperado");
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className={styles.container}>
-      <section className={styles.hero}>
-        <h1 className="heading-xl">
-          Tu horóscopo, interpretado de manera personal y exclusiva.
-        </h1>
-        <p className="text-body mb-8">
-          Recibís cada noche tu horóscopo, interpretado específicamente según tu carta natal.
-        </p>
-        <div className={styles.ctaWrapper}>
-          <Button href="/suscripcion" variant="primary" fullWidth>Suscribirme</Button>
-        </div>
-      </section>
+    <main style={{ padding: "48px", maxWidth: "720px", margin: "0 auto" }}>
+      <h1>Suscripción diaria</h1>
 
-      <section>
-        <p className="text-body mb-4">
-          Completás tus datos de nacimiento para calcular tu carta natal.
+      <p>
+        Recibí todos los días tu lectura astrológica personalizada por WhatsApp.
+      </p>
+
+      <button
+        onClick={handleCheckout}
+        disabled={loading}
+        style={{
+          padding: "14px 22px",
+          borderRadius: "10px",
+          border: "none",
+          cursor: loading ? "not-allowed" : "pointer",
+          fontSize: "16px",
+          fontWeight: 600,
+        }}
+      >
+        {loading ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
+      </button>
+
+      {error && (
+        <p style={{ color: "red", marginTop: "16px" }}>
+          {error}
         </p>
-        <p className="text-body">
-          A partir de eso, comenzás a recibir tu horóscopo personal todos los días.
-        </p>
-      </section>
-    </div>
+      )}
+    </main>
   );
 }
