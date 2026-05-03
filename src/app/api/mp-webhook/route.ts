@@ -66,6 +66,8 @@ export async function POST(req: Request) {
                 .from("users")
                 .update({
                     subscription_status: "active",
+                    last_payment_at: new Date().toISOString(),
+                    mercadopago_payment_id: String(paymentId),
                 })
                 .eq("id", userId);
 
@@ -85,6 +87,7 @@ export async function POST(req: Request) {
                 paymentStatus: payment.status,
                 userId,
                 subscription_status: "active",
+                mercadopago_payment_id: String(paymentId),
             });
         }
 
