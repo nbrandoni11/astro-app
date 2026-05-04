@@ -15,7 +15,7 @@ export default function SuscripcionPage() {
       },
       body: JSON.stringify({
         userId: "4affe580-890f-4e91-8b4b-ec1eb061e1df",
-        email: "tu-email-real@email.com",
+        email: "nbrandoni.exe@gmail.com",
       }),
     });
 
