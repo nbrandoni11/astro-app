@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function SuscripcionPage() {
+function SuscripcionContent() {
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("userId");
+  const email = searchParams.get("email");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const missingParams = !userId || !email;
+
   async function handleCheckout() {
+    if (missingParams) return;
+
     try {
       setLoading(true);
       setError("");
@@ -16,10 +25,7 @@ export default function SuscripcionPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          userId: "4affe580-890f-4e91-8b4b-ec1eb061e1df", // después lo hacemos dinámico
-          email: "tu-email-real@email.com", // después lo hacemos dinámico
-        }),
+        body: JSON.stringify({ userId, email }),
       });
 
       const data = await res.json();
@@ -45,18 +51,24 @@ export default function SuscripcionPage() {
         Recibí todos los días tu lectura personalizada por WhatsApp.
       </p>
 
-      <button
-        onClick={handleCheckout}
-        disabled={loading}
-        style={{
-          marginTop: "40px",
-          padding: "16px 28px",
-          fontSize: "18px",
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "Redirigiendo..." : "Pagar con Mercado Pago"}
-      </button>
+      {missingParams ? (
+        <p style={{ color: "red", marginTop: "40px", fontSize: "16px" }}>
+          Faltan los datos del usuario. Por favor, completá el formulario de registro primero.
+        </p>
+      ) : (
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          style={{
+            marginTop: "40px",
+            padding: "16px 28px",
+            fontSize: "18px",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Redirigiendo..." : "Pagar con Mercado Pago"}
+        </button>
+      )}
 
       {error && (
         <p style={{ color: "red", marginTop: "20px" }}>
@@ -64,5 +76,13 @@ export default function SuscripcionPage() {
         </p>
       )}
     </main>
+  );
+}
+
+export default function SuscripcionPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: "60px", textAlign: "center" }}>Cargando...</main>}>
+      <SuscripcionContent />
+    </Suspense>
   );
 }
