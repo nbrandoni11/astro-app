@@ -1,0 +1,220 @@
+/* ─── Gracias — Astrologiqa ─────────────────────────────────────────────── */
+
+.root {
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.glowTop {
+  position: fixed;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 360px;
+  background: radial-gradient(ellipse, rgba(124, 92, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pageWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--space-5) var(--space-12);
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Logo ────────────────────────────────────────────────────────────────── */
+
+.logoRow {
+  width: 100%;
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.logo {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Celebration ─────────────────────────────────────────────────────────── */
+
+.celebrationIcon {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeUp 0.5s var(--ease-out) both;
+}
+
+.celebrationRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(124, 92, 255, 0.35);
+  background: var(--primary-dim);
+  box-shadow: 0 0 40px rgba(124, 92, 255, 0.25), 0 0 80px rgba(124, 92, 255, 0.1);
+}
+
+.celebrationCheck {
+  position: relative;
+  z-index: 1;
+  font-size: 1.75rem;
+  color: var(--primary);
+  line-height: 1;
+}
+
+/* ── Title ───────────────────────────────────────────────────────────────── */
+
+.title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 6vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--text);
+  margin-bottom: var(--space-5);
+  animation: fadeUp 0.6s 0.1s var(--ease-out) both;
+}
+
+.titleEmphasis {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.subtitle {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  max-width: 400px;
+  margin-bottom: var(--space-10);
+  animation: fadeUp 0.6s 0.15s var(--ease-out) both;
+}
+
+/* ── Status grid ─────────────────────────────────────────────────────────── */
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  width: 100%;
+  margin-bottom: var(--space-6);
+  animation: fadeUp 0.6s 0.2s var(--ease-out) both;
+}
+
+.statusCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  text-align: left;
+  transition: border-color 0.2s ease;
+}
+
+.statusCard:hover {
+  border-color: rgba(124, 92, 255, 0.3);
+}
+
+.statusIcon {
+  font-size: 0.875rem;
+  color: var(--primary);
+  opacity: 0.8;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.statusText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.statusLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.statusValue {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statusActive {
+  color: var(--success);
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ── Welcome card ────────────────────────────────────────────────────────── */
+
+.welcomeCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  width: 100%;
+  margin-bottom: var(--space-8);
+  text-align: left;
+  animation: fadeUp 0.6s 0.25s var(--ease-out) both;
+}
+
+.welcomeText {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  margin: 0;
+}
+
+.welcomeText + .welcomeText {
+  margin-top: var(--space-4);
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* ── CTA ─────────────────────────────────────────────────────────────────── */
+
+.cta {
+  width: 100%;
+  animation: fadeUp 0.6s 0.3s var(--ease-out) both;
+}
+
+/* ── Desktop ─────────────────────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .pageWrap {
+    padding: var(--space-12) var(--space-8) var(--space-16);
+  }
+}

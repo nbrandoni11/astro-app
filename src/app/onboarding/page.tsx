@@ -4,9 +4,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import styles from './onboarding.module.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tipos
+// Tipos (sin cambios)
 // ─────────────────────────────────────────────────────────────────────────────
 interface CityResult {
   name: string;
@@ -35,9 +36,7 @@ interface FormData {
 }
 
 interface BirthPlace {
-  /** Lo que el usuario escribió o seleccionó (visible en el UI) */
   displayLabel: string;
-  /** Ciudad resuelta para guardar en DB */
   resolvedLabel: string;
   lat: number | null;
   lon: number | null;
@@ -47,62 +46,34 @@ interface BirthPlace {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Componente BirthPlaceSearch
+// Match reason labels (sin cambios)
 // ─────────────────────────────────────────────────────────────────────────────
 const matchReasonLabels: Record<string, string> = {
-  exact_match: "Coincidencia exacta",
-  priority_barrio: "Barrio reconocido",
-  priority_barrio_reference: "Barrio reconocido",
-  fallback_city_or_province: "Ubicación aproximada",
-  priority_caba: "Nombre alternativo reconocido",
-  priority_province: "Nombre alternativo reconocido",
-  priority_alternative: "Nombre alternativo reconocido",
+  exact_match: 'Coincidencia exacta',
+  priority_barrio: 'Barrio reconocido',
+  priority_barrio_reference: 'Barrio reconocido',
+  fallback_city_or_province: 'Ubicación aproximada',
+  priority_caba: 'Nombre alternativo reconocido',
+  priority_province: 'Nombre alternativo reconocido',
+  priority_alternative: 'Nombre alternativo reconocido',
 };
 
 function MatchReasonBadge({ reason }: { reason?: string }) {
   if (!reason) return null;
-  const text = matchReasonLabels[reason] || "Coincidencia";
-  
-  let bg = "rgba(100, 100, 100, 0.15)";
-  let color = "#bbb";
-  let border = "1px solid rgba(100, 100, 100, 0.3)";
-  
-  if (reason === "exact_match") {
-    bg = "rgba(0, 255, 200, 0.1)";
-    color = "#0df";
-    border = "1px solid rgba(0, 255, 200, 0.3)";
-  } else if (reason.startsWith("priority_barrio")) {
-    bg = "rgba(180, 100, 255, 0.1)";
-    color = "#c9f";
-    border = "1px solid rgba(180, 100, 255, 0.3)";
-  } else if (reason === "fallback_city_or_province") {
-    bg = "rgba(255, 180, 50, 0.1)";
-    color = "#fa0";
-    border = "1px solid rgba(255, 180, 50, 0.3)";
-  } else if (reason.startsWith("priority_")) {
-    bg = "rgba(50, 150, 255, 0.1)";
-    color = "#5af";
-    border = "1px solid rgba(50, 150, 255, 0.3)";
-  }
-  
-  return (
-    <span
-      style={{
-        fontSize: "0.72rem",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        background: bg,
-        color: color,
-        border: border,
-        marginLeft: "8px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
+  const text = matchReasonLabels[reason] || 'Coincidencia';
+
+  let cls = styles.badgeNeutral;
+  if (reason === 'exact_match') cls = styles.badgeExact;
+  else if (reason.startsWith('priority_barrio')) cls = styles.badgeBarrio;
+  else if (reason === 'fallback_city_or_province') cls = styles.badgeFallback;
+  else if (reason.startsWith('priority_')) cls = styles.badgePriority;
+
+  return <span className={`${styles.matchBadge} ${cls}`}>{text}</span>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BirthPlaceSearch (lógica intacta, UI rediseñada)
+// ─────────────────────────────────────────────────────────────────────────────
 function BirthPlaceSearch({
   onSelect,
   error,
@@ -154,18 +125,12 @@ function BirthPlaceSearch({
     setResults([]);
     setOpen(false);
     setNotFound(false);
-    
-    if (city.isFallback) {
-      // conservar lo escrito
-    } else {
-      // normal: actualizar el input con el label del resultado
+    if (!city.isFallback) {
       setQuery(city.label);
     }
-    
     onSelect(city, inputText);
   };
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -177,75 +142,52 @@ function BirthPlaceSearch({
   }, []);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', marginBottom: '1.25rem' }}>
-      <Input
-        label="Lugar de nacimiento"
-        placeholder="Ej. Buenos Aires, Mar del Plata, Barrio X San Juan..."
-        value={query}
-        onChange={handleInputChange}
-        autoComplete="off"
-        error={error}
-      />
-
-      {loading && (
-        <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '-0.75rem', marginBottom: '0.5rem' }}>
-          Buscando...
-        </p>
-      )}
+    <div ref={containerRef} className={styles.searchContainer}>
+      <div className={styles.searchInputWrapper}>
+        <span className={styles.searchIcon} aria-hidden="true">◎</span>
+        <input
+          id="birth-place-input"
+          type="text"
+          autoComplete="off"
+          placeholder="Buenos Aires, Mar del Plata, Rosario..."
+          value={query}
+          onChange={handleInputChange}
+          className={`${styles.searchInput} ${error ? styles.searchInputError : ''}`}
+          aria-label="Lugar de nacimiento"
+          aria-autocomplete="list"
+          aria-expanded={open}
+        />
+        {loading && <span className={styles.searchSpinner} aria-hidden="true" />}
+      </div>
+      <label htmlFor="birth-place-input" className={styles.searchLabel}>
+        Lugar de nacimiento
+      </label>
 
       {notFound && !loading && (
-        <p style={{ fontSize: '0.8rem', color: '#e05', marginTop: '-0.75rem', marginBottom: '0.5rem' }}>
+        <p className={styles.searchNotFound}>
           No se encontraron resultados. Intentá con otro nombre o ciudad cercana.
         </p>
       )}
+      {error && <p className={styles.searchError}>{error}</p>}
 
       {open && results.length > 0 && (
-        <ul
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            background: '#1a1a2e',
-            border: '1px solid #333',
-            borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            maxHeight: '240px',
-            overflowY: 'auto',
-          }}
-        >
+        <ul className={styles.dropdown} role="listbox">
           {results.map((city, i) => (
             <li
               key={`${city.lat}-${city.lon}-${i}`}
+              role="option"
+              aria-selected="false"
               onClick={() => handleSelect(city)}
-              style={{
-                padding: '10px 14px',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                color: '#e0e0e0',
-                borderBottom: i < results.length - 1 ? '1px solid #2a2a3e' : 'none',
-                transition: 'background 0.15s',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a4e')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              className={styles.dropdownItem}
             >
-              <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
+              <div className={styles.dropdownItemContent}>
                 {city.isFallback ? (
-                  <span>
-                    <span style={{ color: '#e0e0e0', wordBreak: 'break-word' }}>{city.displayLabel}</span>
-                    <span style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '2px', wordBreak: 'break-word' }}>
-                      → Usar como referencia: {city.resolvedLabel}
-                    </span>
-                  </span>
+                  <>
+                    <span className={styles.dropdownLabel}>{city.displayLabel}</span>
+                    <span className={styles.dropdownSub}>→ Referencia: {city.resolvedLabel}</span>
+                  </>
                 ) : (
-                  <span style={{ wordBreak: 'break-word' }}>{city.label}</span>
+                  <span className={styles.dropdownLabel}>{city.label}</span>
                 )}
               </div>
               <MatchReasonBadge reason={city.matchReason} />
@@ -257,70 +199,49 @@ function BirthPlaceSearch({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BirthPlaceConfirmation (lógica intacta, UI rediseñada)
+// ─────────────────────────────────────────────────────────────────────────────
 function BirthPlaceConfirmation({ place }: { place: BirthPlace }) {
   if (!place.displayLabel) return null;
-
   const friendlyReason = place.matchReason ? matchReasonLabels[place.matchReason] : null;
 
   if (place.isFallback) {
     return (
-      <div
-        style={{
-          fontSize: '0.82rem',
-          marginTop: '-0.75rem',
-          marginBottom: '1rem',
-          padding: '8px 12px',
-          background: 'rgba(255,180,50,0.08)',
-          borderRadius: '6px',
-          borderLeft: '3px solid #fa0',
-          lineHeight: 1.5,
-        }}
-      >
-        <p style={{ color: '#fa0', margin: 0 }}>
-          📍 Lugar ingresado: <strong>{place.displayLabel}</strong>
-          {friendlyReason && (
-            <span style={{ fontSize: '0.75rem', opacity: 0.8, marginLeft: '6px', background: 'rgba(255,180,50,0.15)', padding: '1px 5px', borderRadius: '3px' }}>
-              ({friendlyReason})
-            </span>
-          )}
-        </p>
-        <p style={{ color: '#aaa', margin: '4px 0 0' }}>
-          Usaremos <strong style={{ color: '#fa0' }}>{place.resolvedLabel}</strong> como referencia para calcular tu carta natal.
-        </p>
+      <div className={`${styles.confirmBox} ${styles.confirmBoxFallback}`}>
+        <span className={styles.confirmIcon}>📍</span>
+        <div className={styles.confirmText}>
+          <p className={styles.confirmMain}>
+            {place.displayLabel}
+            {friendlyReason && (
+              <span className={styles.confirmReason}>{friendlyReason}</span>
+            )}
+          </p>
+          <p className={styles.confirmSub}>
+            Referencia: <strong>{place.resolvedLabel}</strong>
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        fontSize: '0.82rem',
-        color: '#7c9',
-        marginTop: '-0.75rem',
-        marginBottom: '1rem',
-        padding: '6px 10px',
-        background: 'rgba(100,200,120,0.08)',
-        borderRadius: '6px',
-        borderLeft: '3px solid #7c9',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}
-    >
-      <span>
-        ✓ Lugar detectado: <strong>{place.resolvedLabel}</strong>
-      </span>
-      {friendlyReason && (
-        <span style={{ fontSize: '0.72rem', color: '#7c9', background: 'rgba(100,200,120,0.15)', padding: '2px 6px', borderRadius: '4px' }}>
-          {friendlyReason}
-        </span>
-      )}
+    <div className={`${styles.confirmBox} ${styles.confirmBoxSuccess}`}>
+      <span className={styles.confirmIcon}>✓</span>
+      <div className={styles.confirmText}>
+        <p className={styles.confirmMain}>
+          {place.resolvedLabel}
+          {friendlyReason && (
+            <span className={styles.confirmReason}>{friendlyReason}</span>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Página principal
+// Página principal (lógica intacta, UI completamente rediseñada)
 // ─────────────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
@@ -350,7 +271,6 @@ export default function OnboardingPage() {
     matchReason: '',
   });
 
-  // Timezone del dispositivo del usuario (se envía siempre)
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,14 +298,9 @@ export default function OnboardingPage() {
 
   const handleCitySelect = (city: CityResult, inputText: string) => {
     setPlaceError('');
-
     const isFallback = city.isFallback === true;
-
-    // displayLabel = lo que el usuario escribió
-    // resolvedLabel = ciudad real resuelta (para mostrar referencia y guardar en DB)
     const displayLabel = isFallback ? (city.displayLabel ?? inputText) : city.label;
     const resolvedLabel = isFallback ? (city.resolvedLabel ?? city.label) : city.label;
-
     setBirthPlace({
       displayLabel,
       resolvedLabel,
@@ -395,7 +310,6 @@ export default function OnboardingPage() {
       isFallback,
       matchReason: city.matchReason,
     });
-
     if (city.tzone === null) {
       setPlaceError(
         `El lugar seleccionado (${resolvedLabel}) no tiene zona horaria disponible. Por favor, seleccioná otra ciudad cercana.`
@@ -407,7 +321,6 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError('');
     setPlaceError('');
-
     if (!birthPlace.displayLabel) {
       setPlaceError('Debés seleccionar un lugar de nacimiento de la lista.');
       return;
@@ -416,21 +329,17 @@ export default function OnboardingPage() {
       setPlaceError('El lugar seleccionado no tiene datos completos. Elegí otra ciudad.');
       return;
     }
-
     setStep(2);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (birthPlace.lat === null || birthPlace.lon === null || birthPlace.tzone === null) {
       setError('Faltan datos del lugar de nacimiento. Volvé al paso anterior y seleccioná una ciudad.');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const res = await fetch('/api/create-user', {
         method: 'POST',
@@ -452,18 +361,13 @@ export default function OnboardingPage() {
           birth_place_resolved: birthPlace.resolvedLabel,
         }),
       });
-
       const data = await res.json();
-
       if (!data.ok) {
         setError(data.error || 'Error creando el usuario');
         setIsSubmitting(false);
         return;
       }
-
-      router.push(
-        `/suscripcion?userId=${data.userId}&email=${encodeURIComponent(data.email)}`
-      );
+      router.push(`/suscripcion?userId=${data.userId}&email=${encodeURIComponent(data.email)}`);
     } catch (err: any) {
       setError(err?.message || 'Error inesperado');
       setIsSubmitting(false);
@@ -471,110 +375,157 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '2rem' }}>
+    <div className={styles.root}>
+      {/* Stars background */}
+      <div className="stars-bg" aria-hidden="true" />
 
-      {/* ── PASO 1: Datos de nacimiento ── */}
-      {step === 1 && (
-        <>
-          <div style={{ marginBottom: '3rem' }}>
-            <h1 className="heading-lg">Tus datos de nacimiento</h1>
-            <p className="text-body">
-              Completá esta información con precisión para calcular tu carta natal y generar interpretaciones más precisas.
-            </p>
+      {/* Glow top */}
+      <div className={styles.glowTop} aria-hidden="true" />
+
+      <div className={`${styles.pageWrap} page-content`}>
+
+        {/* ── Logo ─────────────────────────────────────────────────────── */}
+        <div className={styles.logoRow}>
+          <span className={styles.logo}>✦ Astrologiqa</span>
+        </div>
+
+        {/* ── Progress bar ─────────────────────────────────────────────── */}
+        <div className={styles.progress} role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={2}>
+          <div className={`${styles.progressStep} ${step >= 1 ? styles.progressStepActive : ''}`}>
+            <span className={styles.progressDot} />
+            <span className={styles.progressLabel}>Datos natales</span>
           </div>
-
-          <form onSubmit={handleNextStep} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <Input
-              label="Nombre completo"
-              name="full_name"
-              placeholder="Ej. María Pérez"
-              required
-              value={formData.full_name}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="Ej. maria@email.com"
-              required
-              value={formData.email}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Fecha de nacimiento"
-              name="birth_date"
-              type="date"
-              required
-              onChange={handleDateChange}
-            />
-
-            <Input
-              label="Hora de nacimiento"
-              name="birth_time"
-              type="time"
-              placeholder="--:--"
-              required
-              onChange={handleTimeChange}
-            />
-
-            {/* Buscador de ciudad — reemplaza lat/lon/tzone manuales */}
-            <BirthPlaceSearch
-              onSelect={handleCitySelect}
-              error={placeError}
-            />
-
-            {/* Confirmación visual: normal o fallback */}
-            {birthPlace.displayLabel && !placeError && (
-              <BirthPlaceConfirmation place={birthPlace} />
-            )}
-
-            <div style={{ marginTop: 'auto', marginBottom: '2rem' }}>
-              <Button variant="primary" fullWidth type="submit">
-                Continuar
-              </Button>
-            </div>
-          </form>
-        </>
-      )}
-
-      {/* ── PASO 2: WhatsApp ── */}
-      {step === 2 && (
-        <>
-          <div style={{ marginBottom: '3rem' }}>
-            <h1 className="heading-lg">Tu número de WhatsApp</h1>
-            <p className="text-body">
-              Vamos a enviarte tu horóscopo diario a este número.
-            </p>
+          <div className={styles.progressLine}>
+            <div className={styles.progressLineFill} style={{ width: step >= 2 ? '100%' : '0%' }} />
           </div>
+          <div className={`${styles.progressStep} ${step >= 2 ? styles.progressStepActive : ''}`}>
+            <span className={styles.progressDot} />
+            <span className={styles.progressLabel}>WhatsApp</span>
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <Input
-              label="Teléfono (WhatsApp)"
-              name="phone_whatsapp"
-              type="tel"
-              placeholder="+54 9 11 1234 5678"
-              required
-              value={formData.phone_whatsapp}
-              onChange={handleChange}
-            />
-
-            {error && (
-              <p style={{ color: '#e05', marginTop: '1rem', fontSize: '0.9rem' }}>
-                {error}
+        {/* ── PASO 1: Datos de nacimiento ───────────────────────────────── */}
+        {step === 1 && (
+          <div className={`${styles.card} animate-fade-up`}>
+            <div className={styles.cardHeader}>
+              <h1 className={styles.cardTitle}>Tus datos de nacimiento</h1>
+              <p className={styles.cardDesc}>
+                Necesitamos esta información para calcular tu carta natal con precisión.
               </p>
-            )}
-
-            <div style={{ marginTop: 'auto', marginBottom: '2rem' }}>
-              <Button variant="primary" fullWidth type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creando cuenta...' : 'Finalizar'}
-              </Button>
             </div>
-          </form>
-        </>
-      )}
+
+            <form onSubmit={handleNextStep} className={styles.form}>
+              <Input
+                label="Nombre completo"
+                name="full_name"
+                placeholder="Ej. María Pérez"
+                required
+                value={formData.full_name}
+                onChange={handleChange}
+              />
+
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                placeholder="Ej. maria@email.com"
+                required
+                value={formData.email}
+                onChange={handleChange}
+              />
+
+              <div className={styles.dateTimeRow}>
+                <div className={styles.dateField}>
+                  <Input
+                    label="Fecha de nacimiento"
+                    name="birth_date"
+                    type="date"
+                    required
+                    onChange={handleDateChange}
+                  />
+                </div>
+                <div className={styles.timeField}>
+                  <Input
+                    label="Hora de nacimiento"
+                    name="birth_time"
+                    type="time"
+                    placeholder="--:--"
+                    required
+                    onChange={handleTimeChange}
+                  />
+                </div>
+              </div>
+
+              {/* Buscador de ciudad — lógica intacta */}
+              <BirthPlaceSearch
+                onSelect={handleCitySelect}
+                error={placeError}
+              />
+
+              {birthPlace.displayLabel && !placeError && (
+                <BirthPlaceConfirmation place={birthPlace} />
+              )}
+
+              <div className={styles.formFooter}>
+                <Button variant="primary" fullWidth type="submit">
+                  Continuar →
+                </Button>
+                <p className={styles.formNote}>
+                  Tu información es privada y confidencial.
+                </p>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ── PASO 2: WhatsApp ──────────────────────────────────────────── */}
+        {step === 2 && (
+          <div className={`${styles.card} animate-fade-up`}>
+            <div className={styles.cardHeader}>
+              <h1 className={styles.cardTitle}>Tu número de WhatsApp</h1>
+              <p className={styles.cardDesc}>
+                Ahí vas a recibir tu horóscopo personalizado cada noche.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <Input
+                label="Teléfono WhatsApp"
+                name="phone_whatsapp"
+                type="tel"
+                placeholder="+54 9 11 1234 5678"
+                required
+                value={formData.phone_whatsapp}
+                onChange={handleChange}
+              />
+
+              <div className={styles.whatsappNote}>
+                <span className={styles.whatsappIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.49" />
+                  </svg>
+                </span>
+                Incluí el código de país. Ej: +54 para Argentina.
+              </div>
+
+              {error && <p className={styles.errorMsg}>{error}</p>}
+
+              <div className={styles.formFooter}>
+                <Button variant="primary" fullWidth type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Creando cuenta...' : 'Finalizar registro'}
+                </Button>
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={() => setStep(1)}
+                >
+                  ← Volver
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

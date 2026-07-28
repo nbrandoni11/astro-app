@@ -1,0 +1,933 @@
+/* ─── Landing — Astrologiqa ─────────────────────────────────────────────── */
+
+.root {
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0 var(--space-5);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  background: rgba(7, 7, 17, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.08);
+}
+
+.navInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Container Layout Strategy ───────────────────────────────────────────── */
+.navInner,
+.heroLayout,
+.precisionInner,
+.sectionInner,
+.ctaSectionInner,
+.footerInner {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 24px;
+  box-sizing: border-box;
+}
+
+.logo {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logoIcon {
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.navCta {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+}
+
+.navCta:hover {
+  color: var(--text);
+  border-color: rgba(124, 92, 255, 0.4);
+  background: var(--primary-dim);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.hero {
+  padding-top: calc(60px + 4rem);
+  padding-bottom: 4rem;
+  padding-inline: 0;
+  min-height: clamp(620px, 78vh, 820px);
+  display: flex;
+  align-items: center;
+}
+
+.heroLayout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  align-items: center;
+  width: 100%;
+}
+
+.heroCopy {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeUp 0.7s var(--ease-out) both;
+}
+
+.heroLabel {
+  color: var(--primary);
+  margin-bottom: var(--space-5);
+  opacity: 0.85;
+}
+
+.heroTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(2.8rem, 8vw, 4.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: var(--space-4);
+}
+
+.heroEmphasis {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.heroSub {
+  font-size: 1.0625rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  max-width: 480px;
+  margin-bottom: var(--space-8);
+}
+
+.heroCtas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  width: 100%;
+  max-width: 320px;
+}
+
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1rem 2rem;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: all 0.2s var(--ease-out);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ctaPrimary:hover {
+  background: #6B4FE8;
+  box-shadow: 0 0 40px rgba(124, 92, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.ctaPrimary:active {
+  transform: scale(0.98);
+}
+
+.ctaWhatsapp {
+  display: flex;
+  align-items: center;
+  color: rgba(255,255,255,0.85);
+}
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.ctaSecondary:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.heroTrust {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.heroTrust span {
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trustSep {
+  display: none;
+}
+
+/* ── Planetary Visual (Placeholder & Image) ──────────────────────────────── */
+
+.heroVisual {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  perspective: 1000px;
+}
+
+.planetOrbit {
+  position: relative;
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+.ambientGlow {
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-glow) 0%, rgba(124, 92, 255, 0.03) 70%, transparent 100%);
+  filter: blur(20px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.orbitRing1,
+.orbitRing2,
+.orbitRing3,
+.orbitRing4,
+.orbitRing5 {
+  position: absolute;
+  border: 1px solid rgba(124, 92, 255, 0.1);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform-style: preserve-3d;
+}
+
+/* 3D Celestial Inclinations */
+.orbitRing1 {
+  width: 35%;
+  height: 35%;
+  transform: translate(-50%, -50%) rotateX(65deg) rotateY(-10deg);
+  border-color: rgba(124, 92, 255, 0.15);
+}
+
+.orbitRing2 {
+  width: 55%;
+  height: 55%;
+  transform: translate(-50%, -50%) rotateX(60deg) rotateY(15deg);
+  border-style: dashed;
+  border-color: rgba(124, 92, 255, 0.12);
+}
+
+.orbitRing3 {
+  width: 75%;
+  height: 75%;
+  transform: translate(-50%, -50%) rotateX(70deg) rotateY(-20deg);
+  border-color: rgba(124, 92, 255, 0.08);
+}
+
+.orbitRing4 {
+  width: 90%;
+  height: 90%;
+  transform: translate(-50%, -50%) rotateX(55deg) rotateY(5deg);
+  border-style: dotted;
+  border-color: rgba(124, 92, 255, 0.06);
+}
+
+.orbitRing5 {
+  width: 105%;
+  height: 105%;
+  transform: translate(-50%, -50%) rotateX(75deg) rotateY(-5deg);
+  border-color: rgba(124, 92, 255, 0.04);
+}
+
+.orbitCenter {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #EAE5FF 0%, var(--primary) 40%, rgba(124, 92, 255, 0.2) 70%, transparent 100%);
+  box-shadow: 0 0 40px rgba(124, 92, 255, 0.6), inset 0 0 12px rgba(255, 255, 255, 0.8);
+  z-index: 2;
+  animation: centerPulse 6s ease-in-out infinite alternate;
+}
+
+/* Asymmetric Planetary Bodies */
+.planetLarge {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffd075 0%, #F5A623 60%, #9e5d00 100%);
+  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3), inset -4px -4px 8px rgba(0,0,0,0.5);
+  top: 15%;
+  left: 20%;
+  z-index: 3;
+  animation: floatLarge 8s ease-in-out infinite alternate;
+}
+
+.planetMedium {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #B9B9C8 0%, var(--text-dim) 70%, #20202A 100%);
+  box-shadow: 0 0 15px rgba(255,255,255,0.05), inset -2px -2px 4px rgba(0,0,0,0.6);
+  bottom: 25%;
+  right: 15%;
+  z-index: 3;
+  animation: floatMedium 10s ease-in-out infinite alternate;
+}
+
+.planetSmall1 {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #A88BFF 0%, var(--primary) 70%, #1a0a50 100%);
+  box-shadow: 0 0 10px rgba(124, 92, 255, 0.4);
+  top: 40%;
+  right: 25%;
+  z-index: 3;
+  animation: floatSmall1 12s ease-in-out infinite alternate;
+}
+
+.planetSmall2 {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #4ECCA3 0%, #2E7D63 80%, #0c2b20 100%);
+  box-shadow: 0 0 8px rgba(78, 204, 163, 0.3);
+  bottom: 20%;
+  left: 30%;
+  z-index: 3;
+  animation: floatSmall2 9s ease-in-out infinite alternate;
+}
+
+.planetTiny {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FFF;
+  box-shadow: 0 0 6px #FFF;
+  top: 25%;
+  right: 35%;
+  z-index: 3;
+  animation: floatTiny 7s ease-in-out infinite alternate;
+}
+
+/* Decorative constellation lines */
+.decorLine1 {
+  position: absolute;
+  width: 150px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.15), transparent);
+  transform: rotate(-35deg);
+  z-index: 1;
+}
+
+.decorLine2 {
+  position: absolute;
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  z-index: 1;
+}
+
+.decorStar1, .decorStar2, .decorStar3 {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 8px;
+  z-index: 1;
+}
+
+.decorStar1 { top: 22%; right: 28%; }
+.decorStar2 { bottom: 30%; left: 22%; }
+.decorStar3 { top: 60%; left: 18%; }
+
+/* Very subtle float/pulse keyframes */
+@keyframes centerPulse {
+  0% { transform: scale(0.97); opacity: 0.95; filter: drop-shadow(0 0 25px rgba(124, 92, 255, 0.5)); }
+  100% { transform: scale(1.03); opacity: 1; filter: drop-shadow(0 0 35px rgba(124, 92, 255, 0.7)); }
+}
+
+@keyframes floatLarge {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(4px, -6px); }
+}
+
+@keyframes floatMedium {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-6px, 4px); }
+}
+
+@keyframes floatSmall1 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(5px, 5px); }
+}
+
+@keyframes floatSmall2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-3px, -5px); }
+}
+
+@keyframes floatTiny {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(2px, -3px); }
+}
+
+/* Reduced motion media query */
+@media (prefers-reduced-motion: reduce) {
+  .orbitCenter,
+  .planetLarge,
+  .planetMedium,
+  .planetSmall1,
+  .planetSmall2,
+  .planetTiny {
+    animation: none !important;
+  }
+}
+
+/* ── How it works ────────────────────────────────────────────────────────── */
+
+.howSection {
+  padding-block: 5rem;
+  padding-inline: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sectionInner {
+  /* Aligns with container layout strategy */
+}
+
+.sectionLabel {
+  color: var(--primary);
+  margin-bottom: var(--space-4);
+  opacity: 0.85;
+}
+
+.sectionTitle {
+  margin-bottom: var(--space-10);
+  color: var(--text);
+}
+
+.sectionTitle em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ── Timeline ───────────────────────────────────────────────────────────── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+  width: 100%;
+}
+
+.timelineStep {
+  display: flex;
+  gap: var(--space-5);
+}
+
+.timelineLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timelineNode {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 12px var(--primary);
+  margin-top: 6px;
+}
+
+.timelineLine {
+  width: 2px;
+  flex: 1;
+  background: rgba(124, 92, 255, 0.15);
+  margin-top: 6px;
+}
+
+.timelineContent {
+  padding-bottom: var(--space-4);
+  max-width: 600px;
+}
+
+.timelineLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: var(--space-1);
+}
+
+.timelineTitle {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.timelineDesc {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── Preview section ─────────────────────────────────────────────────────── */
+
+.previewSection {
+  padding-block: 5rem;
+  padding-inline: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── Precision Section ──────────────────────────────────────────────────── */
+
+.precisionSection {
+  padding-block: var(--space-20);
+  border-top: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.precisionText {
+  flex: 1;
+  max-width: 600px;
+}
+
+.precisionTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: var(--space-4);
+}
+
+.precisionTitle em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.precisionBody {
+  font-size: 1.0625rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.precisionList {
+  flex: 1;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 500px;
+  width: 100%;
+}
+
+.precisionItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.precisionDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  flex-shrink: 0;
+}
+
+/* ── Reading card (premium editorial) ───────────────────────────────────── */
+
+.readingCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(124, 92, 255, 0.08), var(--shadow-card);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.readingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.readingDate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.readingDateLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.readingDateValue {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.readingBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #A88BFF;
+  background: var(--primary-dim);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.readingBody {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.readingIntro {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  font-style: italic;
+}
+
+.readingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.readingSection {
+  padding: var(--space-5);
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s ease;
+}
+
+.readingSection:nth-child(even) {
+  border-right: none;
+}
+
+.readingSection:nth-child(3),
+.readingSection:nth-child(4) {
+  border-bottom: none;
+}
+
+.readingSection:hover {
+  background: rgba(124, 92, 255, 0.03);
+}
+
+.readingSectionIcon {
+  font-size: 1rem;
+  color: var(--primary);
+  opacity: 0.7;
+  margin-bottom: var(--space-2);
+}
+
+.readingSectionName {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: var(--space-2);
+}
+
+.readingSectionBar {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+
+.readingSectionFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), rgba(124, 92, 255, 0.4));
+  border-radius: var(--radius-pill);
+}
+
+.readingSectionText {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.readingFooter {
+  padding: var(--space-5) var(--space-6);
+  background: rgba(7, 7, 17, 0.4);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.readingFooterLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.readingFooterValue {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+}
+
+/* ── CTA section ─────────────────────────────────────────────────────────── */
+
+.ctaSection {
+  padding-block: 5rem;
+  padding-inline: 0;
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.ctaSectionTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  margin-bottom: var(--space-5);
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+.ctaSectionTitle em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.ctaSectionSub {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: var(--space-8);
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.trustGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-10);
+  width: 100%;
+}
+
+.trustItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trustIcon {
+  font-size: 1.125rem;
+  color: var(--text-dim);
+}
+
+.trustLabel {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.footer {
+  padding-block: var(--space-8);
+  padding-inline: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.footerLogo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+/* ── Desktop & Media Queries ─────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .trustGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+
+  .readingFooter {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+@media (min-width: 900px) {
+  /* Container layout strategy desktop paddings */
+  .navInner,
+  .heroLayout,
+  .precisionInner,
+  .sectionInner,
+  .ctaSectionInner,
+  .footerInner {
+    padding-inline: 48px;
+  }
+
+  /* Hero Desktop Layout (45% left, 55% right grid) */
+  .hero {
+    padding-top: calc(60px + 6rem);
+    padding-bottom: 6rem;
+  }
+
+  .heroLayout {
+    display: grid;
+    grid-template-columns: 45% 55%;
+    align-items: center;
+    gap: var(--space-12);
+  }
+
+  .heroCopy {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .heroCtas {
+    flex-direction: row;
+    max-width: none;
+    width: auto;
+  }
+
+  .heroTrust {
+    flex-direction: row;
+    gap: var(--space-6);
+  }
+
+  .trustSep {
+    display: inline;
+    color: var(--text-dim);
+    opacity: 0.5;
+  }
+
+  /* Precision Section Desktop layout */
+  .precisionSection {
+    padding-block: var(--space-24);
+  }
+
+  .precisionInner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-16);
+  }
+
+  /* Vertical Section Paddings */
+  .howSection,
+  .previewSection,
+  .ctaSection {
+    padding-block: 7rem;
+  }
+}

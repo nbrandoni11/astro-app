@@ -1,13 +1,26 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Inter, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
-const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-serif' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const dmSerif = DM_Serif_Display({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'Astrólogo Personalizado',
-  description: 'Un astrólogo personalizado que te acompaña todos los días.',
+  title: 'Astrologiqa — Tu horóscopo personal cada noche',
+  description:
+    'Recibí todas las noches un horóscopo personalizado basado en tu carta natal y los tránsitos del día, directo en WhatsApp.',
+  keywords: 'astrología, horóscopo, carta natal, personalizado, WhatsApp',
 };
 
 export default function RootLayout({
@@ -16,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="es" className={`${inter.variable} ${dmSerif.variable}`}>
       <body>
         <main className="main-container">
           {children}

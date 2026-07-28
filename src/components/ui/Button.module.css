@@ -1,55 +1,78 @@
+/* ─── Button — Astrologiqa Premium ─────────────────────────────────────── */
+
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.875rem 2rem;
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 400;
-  border-radius: 0; /* Minimal, sharp or slightly rounded corners? Since no heavy hierarchy, completely square or light border-radius. Let's use 2px for subtle softening. */
-  border-radius: 2px;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    background-color 0.2s var(--ease-out),
+    box-shadow       0.2s var(--ease-out),
+    border-color     0.2s var(--ease-out),
+    transform        0.15s var(--ease-out),
+    opacity          0.2s ease;
   text-decoration: none;
+  white-space: nowrap;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
+/* Primary — violeta sólido con glow */
 .primary {
-  background-color: var(--text-main);
-  color: var(--bg-color);
-  border: 1px solid var(--text-main);
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 20px rgba(124, 92, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .primary:hover:not(:disabled) {
-  background-color: #333333;
-  border-color: #333333;
+  background-color: #6B4FE8;
+  box-shadow: 0 0 32px rgba(124, 92, 255, 0.38), inset 0 1px 0 rgba(255,255,255,0.12);
 }
 
+/* Secondary — ghost con borde sutil */
 .secondary {
-  background-color: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-color: var(--border-subtle);
 }
 
 .secondary:hover:not(:disabled) {
-  background-color: #F0F0F0;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
 }
 
+/* Outline — borde violeta transparente */
 .outline {
   background-color: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--text-main);
+  color: var(--text-muted);
+  border-color: rgba(124, 92, 255, 0.3);
 }
 
 .outline:hover:not(:disabled) {
-  background-color: var(--text-main);
-  color: var(--bg-color);
+  background-color: var(--primary-dim);
+  color: var(--text);
+  border-color: rgba(124, 92, 255, 0.5);
 }
 
+/* Full width */
 .fullWidth {
   width: 100%;
 }
