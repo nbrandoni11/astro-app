@@ -22,18 +22,40 @@ export async function POST(req: Request) {
       birth_place_resolved,
     } = body;
 
-    // Validación de campos obligatorios
     if (!full_name || !email || !phone_whatsapp) {
       return NextResponse.json(
-        { ok: false, error: "Faltan campos obligatorios: full_name, email, phone_whatsapp" },
+        {
+          ok: false,
+          error:
+            "Faltan campos obligatorios: full_name, email, phone_whatsapp",
+        },
         { status: 400 }
       );
     }
 
+    // Crear usuario en Supabase Auth
+    const { data: authUser, error: authError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
+
+    if (authError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: authError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Crear usuario en la tabla users
     const { data, error } = await supabaseAdmin
       .from("users")
       .insert([
         {
+          id: authUser.user.id,
           full_name,
           email,
           phone_whatsapp,
@@ -55,9 +77,14 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      console.error("[create-user] Supabase error:", error);
+      // Si falla la inserción, eliminamos el usuario de Auth
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+
       return NextResponse.json(
-        { ok: false, error: error.message || "Error insertando usuario" },
+        {
+          ok: false,
+          error: error.message,
+        },
         { status: 500 }
       );
     }
@@ -68,9 +95,11 @@ export async function POST(req: Request) {
       email: data.email,
     });
   } catch (err: any) {
-    console.error("[create-user] Unexpected error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Error inesperado" },
+      {
+        ok: false,
+        error: err?.message || "Error inesperado",
+      },
       { status: 500 }
     );
   }
