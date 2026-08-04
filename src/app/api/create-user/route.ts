@@ -50,12 +50,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Crear usuario en la tabla users
+    // Crear usuario en la tabla public.users
     const { data, error } = await supabaseAdmin
       .from("users")
       .insert([
         {
-          id: authUser.user.id,
+          auth_user_id: authUser.user.id,
           full_name,
           email,
           phone_whatsapp,
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      // Si falla la inserción, eliminamos el usuario de Auth
+      // Si falla la inserción eliminamos el usuario de Auth
       await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
 
       return NextResponse.json(
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      userId: data.id,
+      userId: data.auth_user_id,
       email: data.email,
     });
   } catch (err: any) {

@@ -97,7 +97,9 @@ export async function POST(req: Request) {
                     birth_min,
                     birth_lat,
                     birth_lon,
-                    birth_tzone
+                    birth_tzone,
+                    natal_chart,
+                    natal_interpretation
                     `
                 )
                 .eq("id", userId)
@@ -111,6 +113,19 @@ export async function POST(req: Request) {
                     },
                     { status: 500 }
                 );
+            }
+
+            // Check if natal chart already exists to avoid redundant calls
+            if (user.natal_chart && user.natal_interpretation) {
+                return NextResponse.json({
+                    ok: true,
+                    paymentStatus: payment.status,
+                    userId,
+                    subscription_status: "active",
+                    mercadopago_payment_id: String(paymentId),
+                    natal_chart_generated: false,
+                    message: "Natal chart already exists, skipped generation."
+                });
             }
 
             // Generar carta natal

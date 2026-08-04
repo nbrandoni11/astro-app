@@ -3,9 +3,17 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
-
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
+    
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const host = request.headers.get('host');
+    
+    const isLocal = host?.includes('localhost') || host?.includes('127.0.0.1');
+    const protocol = isLocal ? 'http' : (forwardedProto || 'https');
+    const domain = forwardedHost || host;
+    const origin = domain ? `${protocol}://${domain}` : new URL(request.url).origin;
 
     if (!code) {
         return NextResponse.redirect(`${origin}/login`);
