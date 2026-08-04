@@ -12,7 +12,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
+        console.log("=== WEBHOOK START ===");
         const body = await req.json();
+        console.log("Incoming webhook payload:", JSON.stringify(body, null, 2));
 
         if (body.type !== "payment") {
             return NextResponse.json({ ok: true, ignored: true });
@@ -37,6 +39,8 @@ export async function POST(req: Request) {
         );
 
         const payment = await paymentRes.json();
+        console.log("Mercado Pago payment response:", JSON.stringify(payment, null, 2));
+        console.log("payment.metadata:", JSON.stringify(payment.metadata, null, 2));
 
         if (!paymentRes.ok) {
             return NextResponse.json(
@@ -50,6 +54,7 @@ export async function POST(req: Request) {
         }
 
         const userId = payment.metadata?.userId || payment.metadata?.user_id;
+        console.log("Extracted userId:", userId);
 
         if (!userId) {
             return NextResponse.json(
@@ -65,7 +70,7 @@ export async function POST(req: Request) {
         if (payment.status === "approved") {
 
             // Activar suscripción
-            const { error } = await supabaseAdmin
+            const updateRes = await supabaseAdmin
                 .from("users")
                 .update({
                     subscription_status: "active",
@@ -73,6 +78,10 @@ export async function POST(req: Request) {
                     mercadopago_payment_id: String(paymentId),
                 })
                 .eq("id", userId);
+            
+            console.log("Result of the UPDATE to users:", JSON.stringify(updateRes, null, 2));
+
+            const { error } = updateRes;
 
             if (error) {
                 return NextResponse.json(
@@ -86,7 +95,7 @@ export async function POST(req: Request) {
             }
 
             // Obtener datos natales del usuario
-            const { data: user, error: userError } = await supabaseAdmin
+            const selectRes = await supabaseAdmin
                 .from("users")
                 .select(
                     `
@@ -104,6 +113,10 @@ export async function POST(req: Request) {
                 )
                 .eq("id", userId)
                 .single();
+            
+            console.log("Result of the SELECT from users:", JSON.stringify(selectRes, null, 2));
+
+            const { data: user, error: userError } = selectRes;
 
             if (userError || !user) {
                 return NextResponse.json(
@@ -129,6 +142,7 @@ export async function POST(req: Request) {
             }
 
             // Generar carta natal
+            console.log("Entering generateNatalChart()");
             const { astroData, interpretation } = await generateNatalChart({
                 day: user.birth_day,
                 month: user.birth_month,
@@ -139,9 +153,10 @@ export async function POST(req: Request) {
                 lon: user.birth_lon,
                 tzone: user.birth_tzone,
             });
+            console.log("Returning from generateNatalChart(), astroData/interpretation generated.");
 
             // Guardarla
-            const { error: natalError } = await supabaseAdmin
+            const saveRes = await supabaseAdmin
                 .from("users")
                 .update({
                     natal_chart: astroData,
@@ -149,6 +164,10 @@ export async function POST(req: Request) {
                     natal_chart_generated_at: new Date().toISOString(),
                 })
                 .eq("id", userId);
+            
+            console.log("Result of saving the natal chart:", JSON.stringify(saveRes, null, 2));
+
+            const { error: natalError } = saveRes;
 
             if (natalError) {
                 return NextResponse.json(
@@ -160,6 +179,8 @@ export async function POST(req: Request) {
                     { status: 500 }
                 );
             }
+
+            console.log("WhatsApp sending log (placeholder as code currently missing)");
 
             return NextResponse.json({
                 ok: true,
@@ -179,6 +200,8 @@ export async function POST(req: Request) {
         });
 
     } catch (err: any) {
+        console.error(err);
+        console.error(err?.stack);
         return NextResponse.json(
             {
                 ok: false,
