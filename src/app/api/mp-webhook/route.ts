@@ -77,7 +77,7 @@ export async function POST(req: Request) {
                     last_payment_at: new Date().toISOString(),
                     mercadopago_payment_id: String(paymentId),
                 })
-                .eq("id", userId);
+                .eq("auth_user_id", userId);
             
             console.log("Result of the UPDATE to users:", JSON.stringify(updateRes, null, 2));
 
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                     natal_interpretation
                     `
                 )
-                .eq("id", userId)
+                .eq("auth_user_id", userId)
                 .single();
             
             console.log("Result of the SELECT from users:", JSON.stringify(selectRes, null, 2));
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
                     natal_interpretation: interpretation,
                     natal_chart_generated_at: new Date().toISOString(),
                 })
-                .eq("id", userId);
+                .eq("auth_user_id", userId);
             
             console.log("Result of saving the natal chart:", JSON.stringify(saveRes, null, 2));
 
