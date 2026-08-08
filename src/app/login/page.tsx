@@ -13,21 +13,61 @@ export default function LoginPage() {
 
         setLoading(true);
 
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
-        });
+        try {
+            console.log("=== MAGIC LINK START ===");
+            console.log("Email:", email);
+            console.log(
+                "Redirect:",
+                `${window.location.origin}/auth/callback`
+            );
 
-        setLoading(false);
+            const { data, error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                },
+            });
 
-        if (error) {
-            alert(error.message);
-            return;
+            console.log("Magic Link data:", data);
+            console.log("Magic Link error:", error);
+
+            if (error) {
+                console.error("=== MAGIC LINK ERROR ===");
+                console.error("Full error:", error);
+                console.error("Message:", error.message);
+                console.error("Status:", error.status);
+                console.error("Code:", error.code);
+
+                alert(
+                    `Error enviando Magic Link
+
+Message: ${error.message || "Sin mensaje"}
+Status: ${error.status ?? "Sin status"}
+Code: ${error.code ?? "Sin código"}`
+                );
+
+                return;
+            }
+
+            console.log("=== MAGIC LINK SUCCESS ===");
+            setSent(true);
+
+        } catch (err: any) {
+            console.error("=== UNEXPECTED MAGIC LINK ERROR ===");
+            console.error("Full error:", err);
+            console.error("Message:", err?.message);
+            console.error("Stack:", err?.stack);
+
+            alert(
+                `Error inesperado
+
+Message: ${err?.message || "Sin mensaje"}
+
+Revisar consola del navegador.`
+            );
+        } finally {
+            setLoading(false);
         }
-
-        setSent(true);
     }
 
     if (sent) {
