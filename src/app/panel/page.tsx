@@ -7,39 +7,24 @@ import ReactMarkdown from "react-markdown";
 export default async function PanelPage() {
   const supabase = await createClient();
 
-  console.log("=== PANEL START ===");
-
   // Verificar usuario autenticado
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
 
-  console.log("PANEL AUTH USER:", user?.id ?? null);
-  console.log("PANEL AUTH ERROR:", userError);
-
   if (!user) {
-    console.error("PANEL REDIRECT: no authenticated user");
-    redirect("/login?error=no_authenticated_user");
+    redirect("/login");
   }
 
-  // Fetch user profile from public.users using SSR client
-  const { data: profile, error: profileError } = await supabase
+  // Obtener perfil del usuario
+  const { data: profile } = await supabase
     .from("users")
     .select("*")
     .eq("auth_user_id", user.id)
     .single();
 
-  console.log("PANEL PROFILE FOUND:", !!profile);
-  console.log("PANEL PROFILE ERROR:", profileError);
-  console.log(
-    "PANEL PROFILE AUTH USER ID:",
-    profile?.auth_user_id ?? null
-  );
-
   if (!profile) {
-    console.error("PANEL REDIRECT: profile not found");
-    redirect("/login?error=profile_not_found");
+    redirect("/login");
   }
 
   const isActive = profile.subscription_status === "active";
