@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+const DAILY_HOROSCOPE_1_CONTENT_SID =
+    "HXea00163b9b20aace4d2d729a7c3cf677";
+
+const DAILY_HOROSCOPE_2_CONTENT_SID =
+    "HX40c52c0e09fbf1a81627e377296df850";
+
 type PendingHoroscope = {
     id: string;
     user_id: string;
@@ -9,7 +15,11 @@ type PendingHoroscope = {
     whatsapp_message_2: string | null;
 };
 
-async function sendTwilioMessage(to: string, body: string) {
+async function sendTwilioTemplate(
+    to: string,
+    contentSid: string,
+    variables: Record<string, string>
+) {
     return fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
         {
@@ -25,7 +35,8 @@ async function sendTwilioMessage(to: string, body: string) {
             body: new URLSearchParams({
                 From: process.env.TWILIO_WHATSAPP_NUMBER!,
                 To: `whatsapp:${to}`,
-                Body: body,
+                ContentSid: contentSid,
+                ContentVariables: JSON.stringify(variables),
             }),
         }
     );
@@ -39,13 +50,18 @@ export async function GET() {
     try {
         const { data: pending, error } = await supabaseAdmin
             .from("daily_horoscopes")
-            .select("id, user_id, horoscope_text, whatsapp_message_1, whatsapp_message_2")
+            .select(
+                "id, user_id, horoscope_text, whatsapp_message_1, whatsapp_message_2"
+            )
             .eq("send_status", "pending")
             .limit(10);
 
         if (error) {
             return NextResponse.json(
-                { ok: false, error: error.message },
+                {
+                    ok: false,
+                    error: error.message,
+                },
                 { status: 500 }
             );
         }
@@ -93,28 +109,29 @@ export async function GET() {
                     .from("daily_horoscopes")
                     .update({
                         send_status: "error",
-                        send_error: "Faltan mensajes whatsapp",
+                        send_error: "Faltan mensajes WhatsApp",
                     })
                     .eq("id", item.id);
 
                 continue;
             }
 
-            const firstName = user.full_name?.split(" ")[0] || "";
-
-            const message1 = `Buen día ${firstName}.
-
-${message1Body}
-
-(1/2)`;
-
-            const message2 = `${message2Body}
-
-(2/2)`;
+            const firstName = user.full_name?.split(" ")[0] || "Astral";
 
             try {
-                // 👉 ENVÍO 1
-                const response1 = await sendTwilioMessage(user.phone_whatsapp, message1);
+                // ─────────────────────────────────────────────
+                // MENSAJE 1
+                // {{1}} = nombre
+                // {{2}} = primera parte del horóscopo
+                // ─────────────────────────────────────────────
+                const response1 = await sendTwilioTemplate(
+                    user.phone_whatsapp,
+                    DAILY_HOROSCOPE_1_CONTENT_SID,
+                    {
+                        "1": firstName,
+                        "2": message1Body,
+                    }
+                );
 
                 if (!response1.ok) {
                     const text = await response1.text();
@@ -123,18 +140,27 @@ ${message1Body}
                         .from("daily_horoscopes")
                         .update({
                             send_status: "error",
-                            send_error: text,
+                            send_error: `Error mensaje 1: ${text}`,
                         })
                         .eq("id", item.id);
 
                     continue;
                 }
 
-                // 👉 ESPERA para asegurar orden
-                await sleep(1500);
+                // Esperar 4 segundos para mantener el orden
+                await sleep(4000);
 
-                // 👉 ENVÍO 2
-                const response2 = await sendTwilioMessage(user.phone_whatsapp, message2);
+                // ─────────────────────────────────────────────
+                // MENSAJE 2
+                // {{1}} = segunda parte del horóscopo
+                // ─────────────────────────────────────────────
+                const response2 = await sendTwilioTemplate(
+                    user.phone_whatsapp,
+                    DAILY_HOROSCOPE_2_CONTENT_SID,
+                    {
+                        "1": message2Body,
+                    }
+                );
 
                 if (!response2.ok) {
                     const text = await response2.text();
@@ -143,7 +169,7 @@ ${message1Body}
                         .from("daily_horoscopes")
                         .update({
                             send_status: "error",
-                            send_error: text,
+                            send_error: `Error mensaje 2: ${text}`,
                         })
                         .eq("id", item.id);
 
@@ -161,6 +187,7 @@ ${message1Body}
 
                 results.push({
                     id: item.id,
+                    userId: item.user_id,
                     ok: true,
                 });
             } catch (err: any) {
