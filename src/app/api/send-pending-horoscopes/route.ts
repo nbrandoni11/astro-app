@@ -46,6 +46,15 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Twilio no acepta saltos de línea, tabs ni múltiples espacios
+// dentro de las ContentVariables de estos templates.
+function sanitizeContentVariable(value: string) {
+    return value
+        .replace(/[\r\n\t]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
 export async function GET() {
     try {
         const { data: pending, error } = await supabaseAdmin
@@ -101,10 +110,10 @@ export async function GET() {
                 continue;
             }
 
-            const message1Body = item.whatsapp_message_1?.trim();
-            const message2Body = item.whatsapp_message_2?.trim();
+            const rawMessage1 = item.whatsapp_message_1?.trim();
+            const rawMessage2 = item.whatsapp_message_2?.trim();
 
-            if (!message1Body || !message2Body) {
+            if (!rawMessage1 || !rawMessage2) {
                 await supabaseAdmin
                     .from("daily_horoscopes")
                     .update({
@@ -116,7 +125,14 @@ export async function GET() {
                 continue;
             }
 
-            const firstName = user.full_name?.split(" ")[0] || "Astral";
+            // Limpiar el contenido antes de enviarlo como ContentVariable.
+            // El contenido original en Supabase no se modifica.
+            const message1Body = sanitizeContentVariable(rawMessage1);
+            const message2Body = sanitizeContentVariable(rawMessage2);
+
+            const firstName = sanitizeContentVariable(
+                user.full_name?.split(" ")[0] || "Astral"
+            );
 
             try {
                 // ─────────────────────────────────────────────
@@ -147,7 +163,7 @@ export async function GET() {
                     continue;
                 }
 
-                // Esperar 4 segundos para mantener el orden
+                // Esperar 4 segundos antes del segundo mensaje
                 await sleep(4000);
 
                 // ─────────────────────────────────────────────
