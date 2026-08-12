@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DAILY_HOROSCOPE_1_CONTENT_SID =
-    "HXea00163b9b20aace4d2d729a7c3cf677";
+    "HXef0ea014c6f6f725382d791da5607c4b";
 
 const DAILY_HOROSCOPE_2_CONTENT_SID =
-    "HX40c52c0e09fbf1a81627e377296df850";
+    "HX2b143759542c2a6ea54bfbe3b050ed67";
 
 type PendingHoroscope = {
     id: string;
