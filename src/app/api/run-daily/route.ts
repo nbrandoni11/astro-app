@@ -4,8 +4,12 @@ import { getNatalChart, getDailyTransits } from "@/lib/astro-engine";
 
 type HoroscopeAIResponse = {
     full?: string;
-    whatsapp_message_1?: string;
-    whatsapp_message_2?: string;
+    panorama_general?: string;
+    trabajo_dinero?: string;
+    relaciones?: string;
+    energia_interna?: string;
+    sintesis_dia?: string;
+    base_astrologica?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -71,6 +75,10 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // ─────────────────────────────────────────────
+        // CARTA NATAL
+        // ─────────────────────────────────────────────
+
         const natal = await getNatalChart({
             day: user.birth_day,
             month: user.birth_month,
@@ -89,6 +97,10 @@ export async function POST(req: NextRequest) {
                 details: natal,
             });
         }
+
+        // ─────────────────────────────────────────────
+        // TRÁNSITOS DEL DÍA
+        // ─────────────────────────────────────────────
 
         const transits = await getDailyTransits({
             day: user.birth_day,
@@ -112,137 +124,185 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                model: "gpt-4.1",
-                temperature: 0.7,
-                messages: [
-                    {
-                        role: "system",
-                        content: `
+        // ─────────────────────────────────────────────
+        // GENERACIÓN CON OPENAI
+        // ─────────────────────────────────────────────
+
+        const aiRes = await fetch(
+            "https://api.openai.com/v1/chat/completions",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "gpt-4.1",
+                    temperature: 0.7,
+                    response_format: {
+                        type: "json_object",
+                    },
+                    messages: [
+                        {
+                            role: "system",
+                            content: `
 Sos un astrólogo experto.
 
 Tu tarea es generar una lectura diaria personalizada basada en carta natal + tránsitos.
 
-Respondé EXCLUSIVAMENTE en JSON válido, sin markdown externo, sin texto antes ni después.
+Respondé EXCLUSIVAMENTE en JSON válido.
 
-La respuesta debe tener exactamente esta estructura:
+La respuesta debe tener EXACTAMENTE esta estructura:
 
 {
   "full": "...",
-  "whatsapp_message_1": "...",
-  "whatsapp_message_2": "..."
+  "panorama_general": "...",
+  "trabajo_dinero": "...",
+  "relaciones": "...",
+  "energia_interna": "...",
+  "sintesis_dia": "...",
+  "base_astrologica": "..."
 }
 
-FORMATO OBLIGATORIO DEL CONTENIDO:
-Panorama general
-Trabajo y dinero
-Relaciones
-Energía interna
-Síntesis del día
-Base astrológica del día
+IMPORTANTE:
 
-DISTRIBUCIÓN OBLIGATORIA PARA WHATSAPP:
-- whatsapp_message_1 debe incluir SOLO:
-  Panorama general
-  Trabajo y dinero
-  Relaciones
+Cada uno de los seis campos corresponde a una sección que será insertada individualmente dentro de un template de WhatsApp.
 
-- whatsapp_message_2 debe incluir SOLO:
-  Energía interna
-  Síntesis del día
-  Base astrológica del día
+Por lo tanto:
 
-LÍMITES PARA WHATSAPP:
-- whatsapp_message_1 debe tener máximo 1400 caracteres.
-- whatsapp_message_2 debe tener máximo 1400 caracteres.
-- No partas secciones entre mensajes.
-- Si hace falta ajustar longitud, resumí dentro de cada sección sin perder claridad.
+- NO incluyas los títulos de las secciones dentro de los campos.
+- NO incluyas emojis.
+- NO incluyas asteriscos.
+- NO incluyas markdown.
+- NO incluyas numeración.
+- NO incluyas saludos.
+- NO incluyas despedidas.
+- NO incluyas "(1/2)" ni "(2/2)".
+- NO incluyas saltos de línea dentro de las secciones.
+- Cada sección debe ser un único párrafo continuo.
+
+Los títulos, emojis, espacios, saludo y despedida ya están definidos en los templates de WhatsApp.
+
+SECCIONES:
+
+1. panorama_general
+Debe explicar cuál es el clima principal del día para esta persona.
+
+2. trabajo_dinero
+Debe centrarse en trabajo, decisiones, productividad, proyectos, dinero y oportunidades relevantes.
+
+3. relaciones
+Debe centrarse en vínculos, pareja, amistades, conversaciones y dinámica interpersonal.
+
+4. energia_interna
+Debe explicar el estado emocional, sensibilidad, energía mental e impulso interno de la persona.
+
+5. sintesis_dia
+Debe sintetizar el día de forma útil y concreta. Debe ayudar a la persona a entender dónde avanzar y dónde conviene tener cuidado.
+
+6. base_astrologica
+Debe explicar de manera breve y comprensible cuáles son los 3 a 5 factores astrológicos más importantes que sostienen la lectura.
+
+BASE ASTROLÓGICA:
+
+No hagas una cadena difícil de leer del estilo:
+
+"Luna cuadratura Mercurio - Mercurio sextil Júpiter - Marte oposición..."
+
+En cambio, explicá los aspectos de manera natural y comprensible.
+
+Ejemplo de estilo:
+
+"La Luna activa hoy tu Mercurio natal, aumentando tu sensibilidad mental y emocional. Venus forma un aspecto favorable con Júpiter, aportando mayor apertura en vínculos y acuerdos. Marte también moviliza tu Mercurio natal, por lo que conviene evitar respuestas impulsivas."
+
+PRIORIZACIÓN:
+
+Elegí SOLO los 3 a 5 aspectos astrológicos más relevantes del día.
+
+No describas todos los tránsitos disponibles.
+
+DOBLE CAPA:
+
+La lectura debe integrar:
+
+- qué está pasando objetivamente
+- cómo puede sentirse internamente la persona
+- qué conviene hacer
+- qué conviene evitar
 
 ESTILO:
+
 - técnico pero humano
 - preciso
 - claro
+- cálido
+- comprensible
+- personalizado
 - sin exageraciones
 - sin espiritualidad vaga
 - sin frases genéricas
+- sin fatalismo
 
-REGLAS CLAVE:
+TONO:
 
-1. PRIORIZACIÓN
-Elegí SOLO los 3 a 5 aspectos más relevantes del día.
-No describas todo.
+- No juzgar.
+- No ser confrontativo.
+- No presentar tendencias astrológicas como destinos inevitables.
+- Ser comprensivo y claro.
+- Hablarle directamente a la persona.
 
-2. DOBLE CAPA
-La lectura principal debe incluir:
-- lo que está pasando objetivamente
-- cómo puede sentirse internamente la persona
-- qué conviene hacer o evitar
+EVITAR:
 
-3. TÉCNICA SEPARADA
-NO mezcles demasiada técnica dentro del cuerpo principal.
-La lectura principal debe ser fluida, clara y agradable de leer.
+No usar expresiones como:
 
-La técnica debe ir al final, en la sección:
-"Base astrológica del día"
-
-Ahí sí podés mencionar:
-- conjunciones
-- oposiciones
-- cuadraturas
-- planeta natal / planeta en tránsito
-- casa activada
-
-4. TONO
-- No juzgar
-- No ser confrontativo
-- Ser comprensivo y claro
-
-5. UTILIDAD
-El texto debe ayudar a entender:
-- qué está pasando hoy
-- cómo puede sentirse
-- dónde conviene avanzar
-- dónde conviene tener cuidado
-
-6. EVITAR
-No usar:
 - "el universo"
 - "puede que"
 - "quizás"
-- lenguaje ambiguo
+- "los astros quieren decirte"
+- frases ambiguas o vacías
 
-7. LONGITUD
-El campo "full" debe tener entre 350 y 500 palabras total.
+LONGITUD:
 
-8. PRECISIÓN Y TIMING
-El texto debe sentirse actual y específico del día.
-Evitar frases neutras o demasiado generales.
+La lectura completa debe mantener aproximadamente la misma profundidad que una lectura de 350 a 500 palabras.
 
-9. BASE TÉCNICA FINAL
-La sección "Base astrológica del día" debe ser breve:
-- 3 a 5 bullets máximo
-- concreta
-- sin explicación larga
-- solo los factores más importantes
+Distribuí esa extensión entre las seis secciones.
 
-OBJETIVO:
-Que la lectura principal sea clara, útil y emocionalmente comprensible, y que la técnica aparezca al final como respaldo y no como peso narrativo.
+Las primeras cinco secciones deben ser suficientemente desarrolladas para que la lectura se sienta personal y sustancial.
 
-IMPORTANTE:
-- El campo "full" debe contener la lectura completa con las 6 secciones.
-- whatsapp_message_1 y whatsapp_message_2 deben ser versiones listas para enviar por WhatsApp.
-- whatsapp_message_1 + whatsapp_message_2 deben conservar el contenido esencial de full, pero organizado en dos mensajes.
-            `,
-                    },
-                    {
-                        role: "user",
-                        content: `
+La base astrológica debe ser algo más breve.
+
+FULL:
+
+El campo "full" debe contener la lectura completa con las seis secciones.
+
+En "full" SÍ deben aparecer los títulos:
+
+Panorama general
+
+Trabajo y dinero
+
+Relaciones
+
+Energía interna
+
+Síntesis del día
+
+Base astrológica del día
+
+Separá claramente las seis secciones dentro de "full".
+
+OBJETIVO FINAL:
+
+La persona debe sentir que recibió una lectura completa, específica y realmente construida a partir de su carta natal y de los tránsitos de ese día.
+
+La lectura principal debe ser clara y agradable de leer.
+
+La técnica astrológica debe funcionar como respaldo de la interpretación, no como un listado pesado de aspectos.
+                            `,
+                        },
+                        {
+                            role: "user",
+                            content: `
 Generá la lectura diaria para esta persona.
 
 Fecha local del usuario:
@@ -256,14 +316,30 @@ ${JSON.stringify(natal)}
 
 Tránsitos:
 ${JSON.stringify(transits)}
-            `,
-                    },
-                ],
-            }),
-        });
+                            `,
+                        },
+                    ],
+                }),
+            }
+        );
+
+        if (!aiRes.ok) {
+            const aiError = await aiRes.text();
+
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "Error llamando a OpenAI",
+                    details: aiError,
+                },
+                { status: 500 }
+            );
+        }
 
         const aiData = await aiRes.json();
-        const rawContent = aiData?.choices?.[0]?.message?.content || "";
+
+        const rawContent =
+            aiData?.choices?.[0]?.message?.content || "";
 
         let parsed: HoroscopeAIResponse;
 
@@ -280,11 +356,39 @@ ${JSON.stringify(transits)}
             );
         }
 
-        const horoscopeText = parsed.full?.trim();
-        const whatsappMessage1 = parsed.whatsapp_message_1?.trim();
-        const whatsappMessage2 = parsed.whatsapp_message_2?.trim();
+        // ─────────────────────────────────────────────
+        // VALIDAR LAS 6 SECCIONES
+        // ─────────────────────────────────────────────
 
-        if (!horoscopeText || !whatsappMessage1 || !whatsappMessage2) {
+        const horoscopeText = parsed.full?.trim();
+
+        const panoramaGeneral =
+            parsed.panorama_general?.trim();
+
+        const trabajoDinero =
+            parsed.trabajo_dinero?.trim();
+
+        const relaciones =
+            parsed.relaciones?.trim();
+
+        const energiaInterna =
+            parsed.energia_interna?.trim();
+
+        const sintesisDia =
+            parsed.sintesis_dia?.trim();
+
+        const baseAstrologica =
+            parsed.base_astrologica?.trim();
+
+        if (
+            !horoscopeText ||
+            !panoramaGeneral ||
+            !trabajoDinero ||
+            !relaciones ||
+            !energiaInterna ||
+            !sintesisDia ||
+            !baseAstrologica
+        ) {
             return NextResponse.json(
                 {
                     ok: false,
@@ -295,20 +399,25 @@ ${JSON.stringify(transits)}
             );
         }
 
-        if (whatsappMessage1.length > 1400 || whatsappMessage2.length > 1400) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "Los mensajes de WhatsApp superan el límite definido",
-                    lengths: {
-                        whatsappMessage1: whatsappMessage1.length,
-                        whatsappMessage2: whatsappMessage2.length,
-                    },
-                    parsed,
-                },
-                { status: 500 }
-            );
-        }
+        // ─────────────────────────────────────────────
+        // PREPARAR LOS DOS MENSAJES ESTRUCTURADOS
+        // ─────────────────────────────────────────────
+
+        const whatsappMessage1 = JSON.stringify({
+            panorama_general: panoramaGeneral,
+            trabajo_dinero: trabajoDinero,
+            relaciones: relaciones,
+        });
+
+        const whatsappMessage2 = JSON.stringify({
+            energia_interna: energiaInterna,
+            sintesis_dia: sintesisDia,
+            base_astrologica: baseAstrologica,
+        });
+
+        // ─────────────────────────────────────────────
+        // GUARDAR EN SUPABASE
+        // ─────────────────────────────────────────────
 
         const { error: insertError } = await supabaseAdmin
             .from("daily_horoscopes")
@@ -336,13 +445,21 @@ ${JSON.stringify(transits)}
             user: user.full_name,
             timezone: user.timezone,
             date: formattedDate,
+
             horoscope: horoscopeText,
+
+            sections: {
+                panoramaGeneral,
+                trabajoDinero,
+                relaciones,
+                energiaInterna,
+                sintesisDia,
+                baseAstrologica,
+            },
+
             whatsappMessage1,
             whatsappMessage2,
-            lengths: {
-                whatsappMessage1: whatsappMessage1.length,
-                whatsappMessage2: whatsappMessage2.length,
-            },
+
             reused: false,
         });
     } catch (err: any) {

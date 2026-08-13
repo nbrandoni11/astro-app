@@ -60,6 +60,14 @@
   font-size: 1.1rem;
 }
 
+.brandLogo {
+  width: 150px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+
 .navCta {
   font-size: 0.84rem;
   font-weight: 500;
@@ -153,7 +161,7 @@
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid rgba(124, 92, 255, 0.5);
-  box-shadow: 0 0 24px rgba(124, 92, 255, 0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.2s var(--ease-out);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
@@ -172,7 +180,7 @@
 .ctaWhatsapp {
   display: flex;
   align-items: center;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .ctaSecondary {
@@ -317,7 +325,7 @@
   height: 28px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ffd075 0%, #F5A623 60%, #9e5d00 100%);
-  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3), inset -4px -4px 8px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3), inset -4px -4px 8px rgba(0, 0, 0, 0.5);
   top: 15%;
   left: 20%;
   z-index: 3;
@@ -330,7 +338,7 @@
   height: 18px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #B9B9C8 0%, var(--text-dim) 70%, #20202A 100%);
-  box-shadow: 0 0 15px rgba(255,255,255,0.05), inset -2px -2px 4px rgba(0,0,0,0.6);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.05), inset -2px -2px 4px rgba(0, 0, 0, 0.6);
   bottom: 25%;
   right: 15%;
   z-index: 3;
@@ -395,50 +403,98 @@
   z-index: 1;
 }
 
-.decorStar1, .decorStar2, .decorStar3 {
+.decorStar1,
+.decorStar2,
+.decorStar3 {
   position: absolute;
   color: rgba(255, 255, 255, 0.4);
   font-size: 8px;
   z-index: 1;
 }
 
-.decorStar1 { top: 22%; right: 28%; }
-.decorStar2 { bottom: 30%; left: 22%; }
-.decorStar3 { top: 60%; left: 18%; }
+.decorStar1 {
+  top: 22%;
+  right: 28%;
+}
+
+.decorStar2 {
+  bottom: 30%;
+  left: 22%;
+}
+
+.decorStar3 {
+  top: 60%;
+  left: 18%;
+}
 
 /* Very subtle float/pulse keyframes */
 @keyframes centerPulse {
-  0% { transform: scale(0.97); opacity: 0.95; filter: drop-shadow(0 0 25px rgba(124, 92, 255, 0.5)); }
-  100% { transform: scale(1.03); opacity: 1; filter: drop-shadow(0 0 35px rgba(124, 92, 255, 0.7)); }
+  0% {
+    transform: scale(0.97);
+    opacity: 0.95;
+    filter: drop-shadow(0 0 25px rgba(124, 92, 255, 0.5));
+  }
+
+  100% {
+    transform: scale(1.03);
+    opacity: 1;
+    filter: drop-shadow(0 0 35px rgba(124, 92, 255, 0.7));
+  }
 }
 
 @keyframes floatLarge {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(4px, -6px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(4px, -6px);
+  }
 }
 
 @keyframes floatMedium {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(-6px, 4px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(-6px, 4px);
+  }
 }
 
 @keyframes floatSmall1 {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(5px, 5px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(5px, 5px);
+  }
 }
 
 @keyframes floatSmall2 {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(-3px, -5px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(-3px, -5px);
+  }
 }
 
 @keyframes floatTiny {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(2px, -3px); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(2px, -3px);
+  }
 }
 
 /* Reduced motion media query */
 @media (prefers-reduced-motion: reduce) {
+
   .orbitCenter,
   .planetLarge,
   .planetMedium,
@@ -845,6 +901,14 @@
   letter-spacing: 0.05em;
 }
 
+.footerBrandLogo {
+  width: 130px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+
 .footerText {
   font-size: 0.75rem;
   color: var(--text-dim);
@@ -867,6 +931,7 @@
 }
 
 @media (min-width: 900px) {
+
   /* Container layout strategy desktop paddings */
   .navInner,
   .heroLayout,

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DAILY_HOROSCOPE_1_CONTENT_SID =
-    "HXef0ea014c6f6f725382d791da5607c4b";
+    "HX1bc424e37b2485ade3467907a7076e03";
 
 const DAILY_HOROSCOPE_2_CONTENT_SID =
-    "HX2b143759542c2a6ea54bfbe3b050ed67";
+    "HX40e951cdf092a089c91fbf5f8f269792";
 
 type PendingHoroscope = {
     id: string;
@@ -13,6 +13,18 @@ type PendingHoroscope = {
     horoscope_text: string;
     whatsapp_message_1: string | null;
     whatsapp_message_2: string | null;
+};
+
+type WhatsAppMessage1 = {
+    panorama_general: string;
+    trabajo_dinero: string;
+    relaciones: string;
+};
+
+type WhatsAppMessage2 = {
+    energia_interna: string;
+    sintesis_dia: string;
+    base_astrologica: string;
 };
 
 async function sendTwilioTemplate(
@@ -91,7 +103,8 @@ export async function GET() {
                     .from("daily_horoscopes")
                     .update({
                         send_status: "error",
-                        send_error: userError?.message || "Usuario no encontrado",
+                        send_error:
+                            userError?.message || "Usuario no encontrado",
                     })
                     .eq("id", item.id);
 
@@ -125,27 +138,103 @@ export async function GET() {
                 continue;
             }
 
-            // Limpiar el contenido antes de enviarlo como ContentVariable.
-            // El contenido original en Supabase no se modifica.
-            const message1Body = sanitizeContentVariable(rawMessage1);
-            const message2Body = sanitizeContentVariable(rawMessage2);
+            // ─────────────────────────────────────────────
+            // PARSEAR LAS SECCIONES GUARDADAS POR RUN-DAILY
+            // ─────────────────────────────────────────────
+
+            let message1Data: WhatsAppMessage1;
+            let message2Data: WhatsAppMessage2;
+
+            try {
+                message1Data = JSON.parse(rawMessage1);
+                message2Data = JSON.parse(rawMessage2);
+            } catch {
+                await supabaseAdmin
+                    .from("daily_horoscopes")
+                    .update({
+                        send_status: "error",
+                        send_error:
+                            "Los mensajes WhatsApp no contienen JSON válido",
+                    })
+                    .eq("id", item.id);
+
+                continue;
+            }
+
+            // ─────────────────────────────────────────────
+            // VALIDAR LAS 6 SECCIONES
+            // ─────────────────────────────────────────────
+
+            if (
+                !message1Data.panorama_general ||
+                !message1Data.trabajo_dinero ||
+                !message1Data.relaciones ||
+                !message2Data.energia_interna ||
+                !message2Data.sintesis_dia ||
+                !message2Data.base_astrologica
+            ) {
+                await supabaseAdmin
+                    .from("daily_horoscopes")
+                    .update({
+                        send_status: "error",
+                        send_error:
+                            "Faltan una o más secciones del horóscopo",
+                    })
+                    .eq("id", item.id);
+
+                continue;
+            }
+
+            // ─────────────────────────────────────────────
+            // LIMPIAR VARIABLES PARA TWILIO
+            // ─────────────────────────────────────────────
 
             const firstName = sanitizeContentVariable(
                 user.full_name?.split(" ")[0] || "Astral"
             );
 
+            const panoramaGeneral = sanitizeContentVariable(
+                message1Data.panorama_general
+            );
+
+            const trabajoDinero = sanitizeContentVariable(
+                message1Data.trabajo_dinero
+            );
+
+            const relaciones = sanitizeContentVariable(
+                message1Data.relaciones
+            );
+
+            const energiaInterna = sanitizeContentVariable(
+                message2Data.energia_interna
+            );
+
+            const sintesisDia = sanitizeContentVariable(
+                message2Data.sintesis_dia
+            );
+
+            const baseAstrologica = sanitizeContentVariable(
+                message2Data.base_astrologica
+            );
+
             try {
                 // ─────────────────────────────────────────────
                 // MENSAJE 1
+                //
                 // {{1}} = nombre
-                // {{2}} = primera parte del horóscopo
+                // {{2}} = Panorama general
+                // {{3}} = Trabajo y dinero
+                // {{4}} = Relaciones
                 // ─────────────────────────────────────────────
+
                 const response1 = await sendTwilioTemplate(
                     user.phone_whatsapp,
                     DAILY_HOROSCOPE_1_CONTENT_SID,
                     {
                         "1": firstName,
-                        "2": message1Body,
+                        "2": panoramaGeneral,
+                        "3": trabajoDinero,
+                        "4": relaciones,
                     }
                 );
 
@@ -163,18 +252,27 @@ export async function GET() {
                     continue;
                 }
 
-                // Esperar 4 segundos antes del segundo mensaje
+                // ─────────────────────────────────────────────
+                // ESPERAR 4 SEGUNDOS
+                // ─────────────────────────────────────────────
+
                 await sleep(4000);
 
                 // ─────────────────────────────────────────────
                 // MENSAJE 2
-                // {{1}} = segunda parte del horóscopo
+                //
+                // {{1}} = Energía interna
+                // {{2}} = Síntesis del día
+                // {{3}} = Base astrológica
                 // ─────────────────────────────────────────────
+
                 const response2 = await sendTwilioTemplate(
                     user.phone_whatsapp,
                     DAILY_HOROSCOPE_2_CONTENT_SID,
                     {
-                        "1": message2Body,
+                        "1": energiaInterna,
+                        "2": sintesisDia,
+                        "3": baseAstrologica,
                     }
                 );
 
@@ -191,6 +289,10 @@ export async function GET() {
 
                     continue;
                 }
+
+                // ─────────────────────────────────────────────
+                // MARCAR COMO ENVIADO
+                // ─────────────────────────────────────────────
 
                 await supabaseAdmin
                     .from("daily_horoscopes")
@@ -211,7 +313,8 @@ export async function GET() {
                     .from("daily_horoscopes")
                     .update({
                         send_status: "error",
-                        send_error: err?.message || "Error desconocido",
+                        send_error:
+                            err?.message || "Error desconocido",
                     })
                     .eq("id", item.id);
             }
@@ -226,7 +329,9 @@ export async function GET() {
         return NextResponse.json(
             {
                 ok: false,
-                error: err?.message || "Error en send-pending-horoscopes",
+                error:
+                    err?.message ||
+                    "Error en send-pending-horoscopes",
             },
             { status: 500 }
         );
