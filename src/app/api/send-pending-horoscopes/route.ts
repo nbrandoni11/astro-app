@@ -7,6 +7,12 @@ const DAILY_HOROSCOPE_1_CONTENT_SID =
 const DAILY_HOROSCOPE_2_CONTENT_SID =
     "HX40e951cdf092a089c91fbf5f8f269792";
 
+// Límites conservadores para las variables.
+// El mensaje final de Twilio tiene un límite de 1600 caracteres.
+// Dejamos margen para todo el contenido fijo de los templates.
+const MESSAGE_1_VARIABLES_MAX = 1125;
+const MESSAGE_2_VARIABLES_MAX = 1200;
+
 type PendingHoroscope = {
     id: string;
     user_id: string;
@@ -58,13 +64,120 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Twilio no acepta saltos de línea, tabs ni múltiples espacios
-// dentro de las ContentVariables de estos templates.
+// Limpia caracteres que pueden generar problemas dentro de ContentVariables.
 function sanitizeContentVariable(value: string) {
     return value
         .replace(/[\r\n\t]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
+}
+
+// Recorta intentando conservar una oración completa.
+// Solo se utiliza como protección de emergencia si OpenAI supera el límite.
+function smartTrim(value: string, maxLength: number) {
+    const clean = sanitizeContentVariable(value);
+
+    if (clean.length <= maxLength) {
+        return clean;
+    }
+
+    const candidate = clean.slice(0, maxLength);
+
+    // Intentar terminar en el último final de oración razonable.
+    const sentenceEnd = Math.max(
+        candidate.lastIndexOf(". "),
+        candidate.lastIndexOf("! "),
+        candidate.lastIndexOf("? ")
+    );
+
+    // Solo usamos el corte por oración si no elimina demasiado contenido.
+    if (sentenceEnd >= Math.floor(maxLength * 0.7)) {
+        return candidate.slice(0, sentenceEnd + 1).trim();
+    }
+
+    // Si no encontramos una oración suficientemente cerca,
+    // cortar en la última palabra completa.
+    const lastSpace = candidate.lastIndexOf(" ");
+
+    if (lastSpace > 0) {
+        return candidate.slice(0, lastSpace).trim() + "…";
+    }
+
+    return candidate.trim();
+}
+
+// Ajusta proporcionalmente tres secciones si la suma supera
+// el presupuesto disponible para las variables del template.
+function fitThreeSections(
+    first: string,
+    second: string,
+    third: string,
+    maxTotal: number
+): [string, string, string] {
+    let a = sanitizeContentVariable(first);
+    let b = sanitizeContentVariable(second);
+    let c = sanitizeContentVariable(third);
+
+    const total = a.length + b.length + c.length;
+
+    if (total <= maxTotal) {
+        return [a, b, c];
+    }
+
+    // Distribuir el espacio proporcionalmente según
+    // la longitud original de cada sección.
+    const ratio = maxTotal / total;
+
+    let maxA = Math.floor(a.length * ratio);
+    let maxB = Math.floor(b.length * ratio);
+    let maxC = Math.floor(c.length * ratio);
+
+    // Garantizar que ninguna sección desaparezca por completo.
+    maxA = Math.max(maxA, 180);
+    maxB = Math.max(maxB, 180);
+    maxC = Math.max(maxC, 180);
+
+    // Si los mínimos hicieron que volvamos a superar el presupuesto,
+    // repartimos el espacio de manera uniforme.
+    if (maxA + maxB + maxC > maxTotal) {
+        const equalBudget = Math.floor(maxTotal / 3);
+
+        maxA = equalBudget;
+        maxB = equalBudget;
+        maxC = maxTotal - equalBudget * 2;
+    }
+
+    a = smartTrim(a, maxA);
+    b = smartTrim(b, maxB);
+    c = smartTrim(c, maxC);
+
+    // Segunda comprobación por seguridad.
+    let fittedTotal = a.length + b.length + c.length;
+
+    if (fittedTotal > maxTotal) {
+        const excess = fittedTotal - maxTotal;
+
+        // Reducimos primero la sección más larga.
+        const sections = [
+            { key: "a", value: a },
+            { key: "b", value: b },
+            { key: "c", value: c },
+        ].sort((x, y) => y.value.length - x.value.length);
+
+        const longest = sections[0];
+
+        if (longest.key === "a") {
+            a = smartTrim(a, Math.max(150, a.length - excess - 5));
+        } else if (longest.key === "b") {
+            b = smartTrim(b, Math.max(150, b.length - excess - 5));
+        } else {
+            c = smartTrim(c, Math.max(150, c.length - excess - 5));
+        }
+
+        fittedTotal = a.length + b.length + c.length;
+    }
+
+    return [a, b, c];
 }
 
 export async function GET() {
@@ -139,7 +252,7 @@ export async function GET() {
             }
 
             // ─────────────────────────────────────────────
-            // PARSEAR LAS SECCIONES GUARDADAS POR RUN-DAILY
+            // PARSEAR LAS SECCIONES
             // ─────────────────────────────────────────────
 
             let message1Data: WhatsAppMessage1;
@@ -185,36 +298,38 @@ export async function GET() {
                 continue;
             }
 
-            // ─────────────────────────────────────────────
-            // LIMPIAR VARIABLES PARA TWILIO
-            // ─────────────────────────────────────────────
-
             const firstName = sanitizeContentVariable(
                 user.full_name?.split(" ")[0] || "Astral"
             );
 
-            const panoramaGeneral = sanitizeContentVariable(
-                message1Data.panorama_general
+            // ─────────────────────────────────────────────
+            // MENSAJE 1 — CONTROL DE LONGITUD
+            // ─────────────────────────────────────────────
+
+            const [
+                panoramaGeneral,
+                trabajoDinero,
+                relaciones,
+            ] = fitThreeSections(
+                message1Data.panorama_general,
+                message1Data.trabajo_dinero,
+                message1Data.relaciones,
+                MESSAGE_1_VARIABLES_MAX
             );
 
-            const trabajoDinero = sanitizeContentVariable(
-                message1Data.trabajo_dinero
-            );
+            // ─────────────────────────────────────────────
+            // MENSAJE 2 — CONTROL DE LONGITUD
+            // ─────────────────────────────────────────────
 
-            const relaciones = sanitizeContentVariable(
-                message1Data.relaciones
-            );
-
-            const energiaInterna = sanitizeContentVariable(
-                message2Data.energia_interna
-            );
-
-            const sintesisDia = sanitizeContentVariable(
-                message2Data.sintesis_dia
-            );
-
-            const baseAstrologica = sanitizeContentVariable(
-                message2Data.base_astrologica
+            const [
+                energiaInterna,
+                sintesisDia,
+                baseAstrologica,
+            ] = fitThreeSections(
+                message2Data.energia_interna,
+                message2Data.sintesis_dia,
+                message2Data.base_astrologica,
+                MESSAGE_2_VARIABLES_MAX
             );
 
             try {
@@ -252,10 +367,7 @@ export async function GET() {
                     continue;
                 }
 
-                // ─────────────────────────────────────────────
-                // ESPERAR 4 SEGUNDOS
-                // ─────────────────────────────────────────────
-
+                // Esperar 4 segundos antes del segundo mensaje.
                 await sleep(4000);
 
                 // ─────────────────────────────────────────────
@@ -307,6 +419,14 @@ export async function GET() {
                     id: item.id,
                     userId: item.user_id,
                     ok: true,
+                    message1VariableCharacters:
+                        panoramaGeneral.length +
+                        trabajoDinero.length +
+                        relaciones.length,
+                    message2VariableCharacters:
+                        energiaInterna.length +
+                        sintesisDia.length +
+                        baseAstrologica.length,
                 });
             } catch (err: any) {
                 await supabaseAdmin
