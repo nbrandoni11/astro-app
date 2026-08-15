@@ -2,10 +2,6 @@
   "crons": [
     {
       "path": "/api/run-daily-all",
-      "schedule": "55 9 * * *"
-    },
-    {
-      "path": "/api/send-pending-horoscopes",
       "schedule": "0 10 * * *"
     }
   ]
