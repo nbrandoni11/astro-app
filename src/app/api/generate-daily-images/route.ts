@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { chromium, Browser } from "playwright";
+import puppeteer, { Browser } from "puppeteer-core";
+import chromium from "@sparticuz/chromium-min";
 import path from "path";
 import fs from "fs";
 import JSZip from "jszip";
@@ -174,10 +175,36 @@ export async function GET(req: Request) {
             .toString("base64");
 
         // --------------------------------------
-        // 4. ABRIR PLAYWRIGHT UNA SOLA VEZ
+        // 4. ABRIR CHROMIUM
         // --------------------------------------
 
-        browser = await chromium.launch({
+        const isVercel =
+            process.env.VERCEL === "1";
+
+        let executablePath: string;
+
+        if (isVercel) {
+            const chromiumPackUrl =
+                "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar";
+
+            executablePath =
+                await chromium.executablePath(
+                    chromiumPackUrl
+                );
+        } else {
+            executablePath =
+                getLocalChromePath();
+        }
+
+        browser = await puppeteer.launch({
+            args: isVercel
+                ? chromium.args
+                : [],
+            defaultViewport: {
+                width: 1080,
+                height: 1350,
+            },
+            executablePath,
             headless: true,
         });
 
@@ -337,6 +364,60 @@ export async function GET(req: Request) {
 }
 
 // ==================================================
+// OBTENER CHROME LOCAL
+// ==================================================
+
+function getLocalChromePath() {
+    if (process.platform === "win32") {
+        const candidates = [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            path.join(
+                process.env.LOCALAPPDATA || "",
+                "Google",
+                "Chrome",
+                "Application",
+                "chrome.exe"
+            ),
+        ];
+
+        for (const candidate of candidates) {
+            if (
+                candidate &&
+                fs.existsSync(candidate)
+            ) {
+                return candidate;
+            }
+        }
+
+        throw new Error(
+            "No se encontró Google Chrome instalado localmente."
+        );
+    }
+
+    if (process.platform === "darwin") {
+        return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    }
+
+    const linuxCandidates = [
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
+    ];
+
+    for (const candidate of linuxCandidates) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    throw new Error(
+        "No se encontró Chrome local."
+    );
+}
+
+// ==================================================
 // GENERAR UNA PLACA
 // ==================================================
 
@@ -365,14 +446,15 @@ async function generatePlate(
     // CREAR PÁGINA
     // --------------------------------------
 
-    const page = await browser.newPage({
-        viewport: {
-            width: 1080,
-            height: 1350,
-        },
-    });
+    const page = await browser.newPage();
 
     try {
+        await page.setViewport({
+            width: 1080,
+            height: 1350,
+            deviceScaleFactor: 1,
+        });
+
         await page.setContent(`
             <!DOCTYPE html>
 
@@ -529,7 +611,7 @@ async function generatePlate(
                 fullPage: false,
             });
 
-        return screenshot;
+        return Buffer.from(screenshot);
     } finally {
         await page.close();
     }
