@@ -185,7 +185,7 @@ export async function GET(req: Request) {
 
         if (isVercel) {
             const chromiumPackUrl =
-                "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.tar";
+                "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar";
 
             executablePath =
                 await chromium.executablePath(
