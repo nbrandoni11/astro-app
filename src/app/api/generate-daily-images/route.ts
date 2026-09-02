@@ -8,6 +8,7 @@ import JSZip from "jszip";
 export const runtime = "nodejs";
 
 const VALID_TYPES = [
+    "portada",
     "sinopsis",
     "general",
     "amor",
@@ -84,13 +85,33 @@ export async function GET(req: Request) {
                 : horoscopeData.horoscope;
 
         // --------------------------------------
-        // 2. CONFIGURACIÓN DE LAS 6 PLACAS
+        // 2. DETERMINAR PORTADA SEGÚN EL DÍA
+        // --------------------------------------
+
+        const portadaBackground =
+            getPortadaBackground(
+                horoscopeData.date
+            );
+
+        // --------------------------------------
+        // 3. CONFIGURACIÓN DE LAS PLACAS
         // --------------------------------------
 
         const configs: Record<
             PlateType,
             PlateConfig
         > = {
+            portada: {
+                title: "",
+                text: "",
+                background: portadaBackground,
+                color: "#F2EFE8",
+                width: 900,
+                fontSize: 90,
+                lineHeight: 1,
+                paragraphMode: false,
+            },
+
             sinopsis: {
                 title: "SINOPSIS DEL DÍA",
                 text: horoscope.sinopsis,
@@ -160,7 +181,7 @@ export async function GET(req: Request) {
         };
 
         // --------------------------------------
-        // 3. CARGAR TIPOGRAFÍA
+        // 4. CARGAR TIPOGRAFÍA
         // --------------------------------------
 
         const fontPath = path.join(
@@ -175,7 +196,7 @@ export async function GET(req: Request) {
             .toString("base64");
 
         // --------------------------------------
-        // 4. ABRIR CHROMIUM
+        // 5. ABRIR CHROMIUM
         // --------------------------------------
 
         const isVercel =
@@ -213,22 +234,26 @@ export async function GET(req: Request) {
         // --------------------------------------
 
         if (type !== "all") {
-            const config =
-                configs[type as PlateType];
+            const plateType =
+                type as PlateType;
 
-            if (!config.text) {
-                throw new Error(
-                    `No se encontró el texto para ${type}`
-                );
-            }
+            const config =
+                configs[plateType];
 
             const screenshot =
-                await generatePlate(
-                    browser,
-                    config,
-                    horoscopeData.date,
-                    fontBase64
-                );
+                plateType === "portada"
+                    ? await generateCover(
+                        browser,
+                        config.background,
+                        horoscopeData.date,
+                        fontBase64
+                    )
+                    : await generatePlate(
+                        browser,
+                        config,
+                        horoscopeData.date,
+                        fontBase64
+                    );
 
             await browser.close();
             browser = undefined;
@@ -253,8 +278,34 @@ export async function GET(req: Request) {
 
         const zip = new JSZip();
 
+        // PORTADA
+
+        const coverScreenshot =
+            await generateCover(
+                browser,
+                portadaBackground,
+                horoscopeData.date,
+                fontBase64
+            );
+
+        zip.file(
+            "00-portada.png",
+            coverScreenshot
+        );
+
+        // RESTO DE PLACAS
+
+        const contentTypes = [
+            "sinopsis",
+            "general",
+            "amor",
+            "trabajo",
+            "bienestar",
+            "consejo",
+        ] as const;
+
         const filenames: Record<
-            PlateType,
+            (typeof contentTypes)[number],
             string
         > = {
             sinopsis: "01-sinopsis.png",
@@ -267,7 +318,9 @@ export async function GET(req: Request) {
             consejo: "06-consejo.png",
         };
 
-        for (const plateType of VALID_TYPES) {
+        for (
+            const plateType of contentTypes
+        ) {
             const config =
                 configs[plateType];
 
@@ -292,7 +345,7 @@ export async function GET(req: Request) {
         }
 
         // --------------------------------------
-        // 5. AGREGAR CAPTION
+        // 6. AGREGAR CAPTION
         // --------------------------------------
 
         if (horoscope.caption) {
@@ -303,7 +356,7 @@ export async function GET(req: Request) {
         }
 
         // --------------------------------------
-        // 6. CREAR ZIP
+        // 7. CREAR ZIP
         // --------------------------------------
 
         const zipBuffer =
@@ -364,6 +417,38 @@ export async function GET(req: Request) {
 }
 
 // ==================================================
+// ELEGIR PORTADA SEGÚN DÍA
+// ==================================================
+
+function getPortadaBackground(
+    date: string
+) {
+    const [year, month, day] =
+        date.split("-").map(Number);
+
+    const dayOfWeek =
+        new Date(
+            Date.UTC(
+                year,
+                month - 1,
+                day
+            )
+        ).getUTCDay();
+
+    const backgrounds = [
+        "portada-domingo.png",
+        "portada-lunes.png",
+        "portada-martes.png",
+        "portada-miercoles.png",
+        "portada-jueves.png",
+        "portada-viernes.png",
+        "portada-sabado.png",
+    ];
+
+    return backgrounds[dayOfWeek];
+}
+
+// ==================================================
 // OBTENER CHROME LOCAL
 // ==================================================
 
@@ -418,6 +503,149 @@ function getLocalChromePath() {
 }
 
 // ==================================================
+// GENERAR PORTADA
+// ==================================================
+
+async function generateCover(
+    browser: Browser,
+    background: string,
+    date: string,
+    fontBase64: string
+) {
+    const backgroundPath = path.join(
+        process.cwd(),
+        "public",
+        "daily-horoscope",
+        background
+    );
+
+    const backgroundBase64 = fs
+        .readFileSync(backgroundPath)
+        .toString("base64");
+
+    const page = await browser.newPage();
+
+    try {
+        await page.setViewport({
+            width: 1080,
+            height: 1350,
+            deviceScaleFactor: 1,
+        });
+
+        await page.setContent(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+
+                    @font-face {
+                        font-family: "EB Garamond";
+                        src: url(
+                            data:font/ttf;base64,${fontBase64}
+                        );
+                    }
+
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    html,
+                    body {
+                        margin: 0;
+                        width: 1080px;
+                        height: 1350px;
+                        overflow: hidden;
+                    }
+
+                    body {
+                        background-image:
+                            url(
+                                data:image/png;base64,${backgroundBase64}
+                            );
+
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                    }
+
+                    .cover {
+                        position: absolute;
+
+                        left: 90px;
+                        right: 90px;
+                        bottom: 110px;
+
+                        color: #F2EFE8;
+                        text-align: left;
+                    }
+
+                    .cover-title {
+                        font-family:
+                            Arial,
+                            sans-serif;
+
+                        font-size: 28px;
+                        font-weight: 400;
+
+                        letter-spacing: 6px;
+
+                        text-transform:
+                            uppercase;
+
+                        margin-bottom: 24px;
+                    }
+
+                    .cover-date {
+                        font-family:
+                            "EB Garamond",
+                            serif;
+
+                        font-size: 105px;
+                        line-height: 0.95;
+
+                        font-weight: 400;
+
+                        letter-spacing: -2px;
+                    }
+
+                </style>
+            </head>
+
+            <body>
+
+                <div class="cover">
+
+                    <div class="cover-title">
+                        EL CIELO HOY
+                    </div>
+
+                    <div class="cover-date">
+                        ${formatDate(date)}
+                    </div>
+
+                </div>
+
+            </body>
+            </html>
+        `);
+
+        await page.evaluate(
+            () => document.fonts.ready
+        );
+
+        const screenshot =
+            await page.screenshot({
+                type: "png",
+                fullPage: false,
+            });
+
+        return Buffer.from(screenshot);
+    } finally {
+        await page.close();
+    }
+}
+
+// ==================================================
 // GENERAR UNA PLACA
 // ==================================================
 
@@ -427,10 +655,6 @@ async function generatePlate(
     date: string,
     fontBase64: string
 ) {
-    // --------------------------------------
-    // CARGAR FONDO
-    // --------------------------------------
-
     const backgroundPath = path.join(
         process.cwd(),
         "public",
@@ -441,10 +665,6 @@ async function generatePlate(
     const backgroundBase64 = fs
         .readFileSync(backgroundPath)
         .toString("base64");
-
-    // --------------------------------------
-    // CREAR PÁGINA
-    // --------------------------------------
 
     const page = await browser.newPage();
 
@@ -638,15 +858,9 @@ function formatHoroscopeText(
     text: string,
     paragraphMode: boolean
 ) {
-    // Sinopsis y Consejo:
-    // un único bloque.
-
     if (!paragraphMode) {
         return escapeHtml(text);
     }
-
-    // Resto:
-    // separar automáticamente por oraciones.
 
     const sentences =
         text.match(
@@ -666,7 +880,7 @@ function formatHoroscopeText(
 }
 
 // ==================================================
-// FORMATEAR FECHA PARA LA PLACA
+// FORMATEAR FECHA
 // ==================================================
 
 function formatDate(date: string) {
@@ -677,7 +891,7 @@ function formatDate(date: string) {
 }
 
 // ==================================================
-// FORMATEAR FECHA PARA EL ZIP
+// FORMATEAR FECHA PARA ZIP
 // ==================================================
 
 function formatDateForFilename(
