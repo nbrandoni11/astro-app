@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function getOrigin(request: NextRequest) {
   const host =
@@ -10,6 +11,69 @@ function getOrigin(request: NextRequest) {
     (host?.includes("localhost") ? "http" : "https");
 
   return host ? `${proto}://${host}` : request.nextUrl.origin;
+}
+
+async function ensureProfileIsLinked(authUser: {
+  id: string;
+  email?: string | null;
+}) {
+  const email = authUser.email?.trim().toLowerCase();
+
+  if (!email) {
+    return;
+  }
+
+  const { data: linkedProfile, error: linkedProfileError } =
+    await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", authUser.id)
+      .maybeSingle();
+
+  if (linkedProfileError) {
+    console.error("AUTH CALLBACK: error checking linked profile", {
+      message: linkedProfileError.message,
+    });
+    return;
+  }
+
+  if (linkedProfile) {
+    return;
+  }
+
+  // Some legacy/test profiles can point to Auth users that no longer exist.
+  // Recover the best matching profile by email, preferring an active one.
+  const { data: candidates, error: candidateError } = await supabaseAdmin
+    .from("users")
+    .select("id, subscription_status, created_at")
+    .ilike("email", email)
+    .order("created_at", { ascending: false });
+
+  if (candidateError) {
+    console.error("AUTH CALLBACK: error finding profile by email", {
+      message: candidateError.message,
+    });
+    return;
+  }
+
+  if (!candidates || candidates.length === 0) {
+    return;
+  }
+
+  const profile =
+    candidates.find((candidate) => candidate.subscription_status === "active") ??
+    candidates[0];
+
+  const { error: repairError } = await supabaseAdmin
+    .from("users")
+    .update({ auth_user_id: authUser.id })
+    .eq("id", profile.id);
+
+  if (repairError) {
+    console.error("AUTH CALLBACK: error repairing auth_user_id", {
+      message: repairError.message,
+    });
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -82,6 +146,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${origin}/login?error=no_session`);
   }
+
+  await ensureProfileIsLinked(user);
 
   return response;
 }
