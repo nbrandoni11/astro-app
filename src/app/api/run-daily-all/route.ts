@@ -4,12 +4,26 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 export const dynamic = "force-dynamic";
 
 function getBaseUrl(req: NextRequest) {
+    if (process.env.APP_URL) return process.env.APP_URL;
+
     const host = req.headers.get("host");
     const protocol = host?.includes("localhost") ? "http" : "https";
     return `${protocol}://${host}`;
 }
 
+function isAuthorized(req: NextRequest) {
+    const secret = process.env.CRON_SECRET;
+    return !!secret && req.headers.get("authorization") === `Bearer ${secret}`;
+}
+
 async function runDailyAll(req: NextRequest) {
+    if (!isAuthorized(req)) {
+        return NextResponse.json(
+            { ok: false, error: "Unauthorized" },
+            { status: 401 }
+        );
+    }
+
     try {
         const { data: users, error } = await supabaseAdmin
             .from("users")
@@ -40,6 +54,7 @@ async function runDailyAll(req: NextRequest) {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
+                        Authorization: `Bearer ${process.env.CRON_SECRET}`,
                     },
                     body: JSON.stringify({
                         userId: user.id,
@@ -76,6 +91,9 @@ async function runDailyAll(req: NextRequest) {
                 `${baseUrl}/api/send-pending-horoscopes`,
                 {
                     method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${process.env.CRON_SECRET}`,
+                    },
                     cache: "no-store",
                 }
             );
