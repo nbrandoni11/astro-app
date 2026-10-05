@@ -17,7 +17,7 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Astrologiqa — Tu horóscopo personal cada noche',
+  title: 'ID Astral — Tu horóscopo personal cada noche',
   description:
     'Recibí todas las noches un horóscopo personalizado basado en tu carta natal y los tránsitos del día, directo en WhatsApp.',
   keywords: 'astrología, horóscopo, carta natal, personalizado, WhatsApp',
