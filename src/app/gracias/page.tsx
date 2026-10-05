@@ -11,7 +11,7 @@ export default function GraciasPage() {
       <div className={`${styles.pageWrap} page-content`}>
         {/* Logo */}
         <div className={styles.logoRow}>
-          <span className={styles.logo}>✦ Astrologiqa</span>
+          <span className={styles.logo}>✦ ID Astral</span>
         </div>
 
         {/* Celebration icon */}
@@ -23,7 +23,7 @@ export default function GraciasPage() {
         {/* Headline */}
         <h1 className={styles.title}>
           Bienvenido/a a<br />
-          <em className={styles.titleEmphasis}>Astrologiqa.</em>
+          <em className={styles.titleEmphasis}>ID Astral.</em>
         </h1>
 
         <p className={styles.subtitle}>
