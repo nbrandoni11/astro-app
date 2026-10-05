@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         }
 
         const appUrl =
-            process.env.NEXT_PUBLIC_APP_URL || "https://astro-app.vercel.app";
+            process.env.NEXT_PUBLIC_APP_URL || "https://idastral.com";
 
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
