@@ -48,7 +48,7 @@ function SuscripcionContent() {
       <div className={`${styles.pageWrap} page-content`}>
         {/* Logo */}
         <div className={styles.logoRow}>
-          <span className={styles.logo}>✦ Astrologiqa</span>
+          <span className={styles.logo}>✦ ID Astral</span>
         </div>
 
         <div className={styles.card}>
