@@ -386,7 +386,7 @@ export default function OnboardingPage() {
 
         {/* ── Logo ─────────────────────────────────────────────────────── */}
         <div className={styles.logoRow}>
-          <span className={styles.logo}>✦ Astrologiqa</span>
+          <span className={styles.logo}>✦ ID Astral</span>
         </div>
 
         {/* ── Progress bar ─────────────────────────────────────────────── */}
