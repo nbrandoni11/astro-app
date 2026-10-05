@@ -38,6 +38,14 @@ export default async function PanelPage() {
     .limit(1)
     .single();
 
+  const nextPaymentDate = profile.subscription_next_payment_at
+    ? new Intl.DateTimeFormat("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(profile.subscription_next_payment_at))
+    : "—";
+
   const formattedDate =
     profile.birth_day && profile.birth_month && profile.birth_year
       ? `${String(profile.birth_day).padStart(2, "0")}/${String(
@@ -103,7 +111,7 @@ export default async function PanelPage() {
 
             <div className={styles.row}>
               <span className={styles.rowLabel}>Próximo cobro</span>
-              <span className={styles.rowValue}>—</span>
+              <span className={styles.rowValue}>{nextPaymentDate}</span>
             </div>
 
             <div className={styles.row}>
@@ -123,10 +131,10 @@ export default async function PanelPage() {
             <span className={styles.nextDeliveryIcon}>☽</span>
 
             <div className={styles.nextDeliveryText}>
-              <p className={styles.nextDeliveryTime}>Esta noche</p>
+              <p className={styles.nextDeliveryTime}>Cada noche · 22:00</p>
 
               <p className={styles.nextDeliveryDesc}>
-                Tu lectura personalizada llegará antes de la medianoche.
+                Recibís la lectura personalizada correspondiente al día siguiente.
               </p>
             </div>
           </div>
@@ -150,7 +158,7 @@ export default async function PanelPage() {
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon}>◈</span>
               <p className={styles.emptyText}>
-                Tu primera lectura llegará esta noche.
+                Tu primera lectura llegará a las 22:00 y corresponderá al día siguiente.
               </p>
             </div>
           )}
@@ -201,11 +209,7 @@ export default async function PanelPage() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Button variant="secondary" fullWidth>
-            Actualizar datos
-          </Button>
-
-          <Button variant="outline" fullWidth>
+          <Button href="/suscripcion/gestionar" variant="outline" fullWidth>
             Gestionar suscripción
           </Button>
         </div>
