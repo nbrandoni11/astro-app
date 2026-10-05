@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { generateNatalChart } from "@/lib/generate-natal-chart";
 
 export async function POST(req: Request) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+        return NextResponse.json(
+            { ok: false, error: "Unauthorized" },
+            { status: 401 }
+        );
+    }
+
   try {
     const body = await req.json();
 
