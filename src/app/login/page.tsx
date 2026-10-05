@@ -18,13 +18,13 @@ export default function LoginPage() {
             console.log("Email:", email);
             console.log(
                 "Redirect:",
-                `${window.location.origin}/auth/callback`
+                `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`
             );
 
             const { data, error } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                    emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
                 },
             });
 
