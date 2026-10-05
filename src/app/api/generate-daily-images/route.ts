@@ -31,6 +31,11 @@ type PlateConfig = {
 };
 
 export async function GET(req: Request) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+        return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     let browser: Browser | undefined;
 
     try {
@@ -63,6 +68,7 @@ export async function GET(req: Request) {
             await fetch(
                 `${url.origin}/api/general-transits`,
                 {
+                    headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
                     cache: "no-store",
                 }
             );
