@@ -60,7 +60,7 @@ export default async function PanelPage() {
       <div className={`${styles.pageWrap} page-content`}>
         {/* Header */}
         <header className={styles.header}>
-          <span className={styles.logo}>✦ Astrologiqa</span>
+          <span className={styles.logo}>✦ ID Astral</span>
           <h1 className={styles.pageTitle}>Mi cuenta</h1>
         </header>
 
