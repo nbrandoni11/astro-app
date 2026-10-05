@@ -1,6 +1,63 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+async function resolveAuthUser(
+  normalizedEmail: string,
+  preferredAuthUserId?: string | null
+) {
+  if (preferredAuthUserId) {
+    const { data, error } =
+      await supabaseAdmin.auth.admin.getUserById(preferredAuthUserId);
+
+    if (!error && data.user?.email?.trim().toLowerCase() === normalizedEmail) {
+      return {
+        authUserId: data.user.id,
+        created: false,
+      };
+    }
+  }
+
+  const {
+    data: { users: authUsers },
+    error: listUsersError,
+  } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+
+  if (listUsersError) {
+    throw new Error(
+      `Error verificando la cuenta: ${listUsersError.message}`
+    );
+  }
+
+  const existingAuthUser = authUsers.find(
+    (user) => user.email?.trim().toLowerCase() === normalizedEmail
+  );
+
+  if (existingAuthUser) {
+    return {
+      authUserId: existingAuthUser.id,
+      created: false,
+    };
+  }
+
+  const { data: authUser, error: authError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email: normalizedEmail,
+      email_confirm: true,
+    });
+
+  if (authError || !authUser.user) {
+    throw new Error(authError?.message || "Error creando la cuenta");
+  }
+
+  return {
+    authUserId: authUser.user.id,
+    created: true,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -35,18 +92,18 @@ export async function POST(req: Request) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    // 1. Buscar primero si ya existe en public.users
-    const { data: existingProfile, error: existingProfileError } =
-      await supabaseAdmin
-        .from("users")
-        .select("id, auth_user_id, email, subscription_status")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+    // There can be legacy/test duplicate profiles. Prefer an active profile,
+    // otherwise use the newest one, instead of failing with maybeSingle().
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from("users")
+      .select("id, auth_user_id, email, subscription_status, created_at")
+      .ilike("email", normalizedEmail)
+      .order("created_at", { ascending: false });
 
-    if (existingProfileError) {
+    if (profilesError) {
       console.error(
         "[create-user] Error buscando usuario existente:",
-        existingProfileError
+        profilesError
       );
 
       return NextResponse.json(
@@ -58,20 +115,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Si ya existe en public.users, reutilizarlo
+    const existingProfile =
+      profiles?.find((profile) => profile.subscription_status === "active") ??
+      profiles?.[0] ??
+      null;
+
     if (existingProfile) {
-      if (!existingProfile.auth_user_id) {
+      let resolved;
+
+      try {
+        resolved = await resolveAuthUser(
+          normalizedEmail,
+          existingProfile.auth_user_id
+        );
+      } catch (error: any) {
+        console.error("[create-user] Error reparando Auth:", error);
+
         return NextResponse.json(
           {
             ok: false,
-            error:
-              "La cuenta existe pero no está correctamente vinculada. Contactá a soporte.",
+            error: error?.message || "Error verificando la cuenta",
           },
           { status: 500 }
         );
       }
 
-      // Si ya está activo, no crear ni modificar la cuenta
+      if (resolved.authUserId !== existingProfile.auth_user_id) {
+        const { error: relinkError } = await supabaseAdmin
+          .from("users")
+          .update({ auth_user_id: resolved.authUserId })
+          .eq("id", existingProfile.id);
+
+        if (relinkError) {
+          if (resolved.created) {
+            await supabaseAdmin.auth.admin.deleteUser(resolved.authUserId);
+          }
+
+          console.error(
+            "[create-user] Error reparando auth_user_id:",
+            relinkError
+          );
+
+          return NextResponse.json(
+            {
+              ok: false,
+              error: "Error vinculando la cuenta",
+            },
+            { status: 500 }
+          );
+        }
+      }
+
       if (existingProfile.subscription_status === "active") {
         return NextResponse.json(
           {
@@ -84,10 +178,10 @@ export async function POST(req: Request) {
         );
       }
 
-      // Si existe pero no pagó, actualizar sus datos y permitir continuar
       const { data: updatedProfile, error: updateError } = await supabaseAdmin
         .from("users")
         .update({
+          auth_user_id: resolved.authUserId,
           full_name,
           phone_whatsapp,
           birth_day,
@@ -129,71 +223,27 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. No existe en public.users.
-    // Buscar si existe en Supabase Auth por un registro anterior incompleto.
-    const {
-      data: { users: authUsers },
-      error: listUsersError,
-    } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
+    let resolved;
 
-    if (listUsersError) {
-      console.error(
-        "[create-user] Error buscando usuario en Auth:",
-        listUsersError
-      );
+    try {
+      resolved = await resolveAuthUser(normalizedEmail);
+    } catch (error: any) {
+      console.error("[create-user] Error creando/verificando Auth:", error);
 
       return NextResponse.json(
         {
           ok: false,
-          error: "Error verificando la cuenta",
+          error: error?.message || "Error creando la cuenta",
         },
         { status: 500 }
       );
     }
 
-    const existingAuthUser = authUsers.find(
-      (user) => user.email?.trim().toLowerCase() === normalizedEmail
-    );
-
-    let authUserId: string;
-    let authUserWasCreated = false;
-
-    if (existingAuthUser) {
-      // Reutilizar Auth User existente
-      authUserId = existingAuthUser.id;
-    } else {
-      // 4. Crear un Auth User solamente si realmente no existe
-      const { data: authUser, error: authError } =
-        await supabaseAdmin.auth.admin.createUser({
-          email: normalizedEmail,
-          email_confirm: true,
-        });
-
-      if (authError || !authUser.user) {
-        console.error("[create-user] Error creando usuario Auth:", authError);
-
-        return NextResponse.json(
-          {
-            ok: false,
-            error: authError?.message || "Error creando la cuenta",
-          },
-          { status: 500 }
-        );
-      }
-
-      authUserId = authUser.user.id;
-      authUserWasCreated = true;
-    }
-
-    // 5. Crear public.users vinculado al Auth User correcto
     const { data: newProfile, error: insertError } = await supabaseAdmin
       .from("users")
       .insert([
         {
-          auth_user_id: authUserId,
+          auth_user_id: resolved.authUserId,
           full_name,
           email: normalizedEmail,
           phone_whatsapp,
@@ -220,10 +270,8 @@ export async function POST(req: Request) {
         insertError
       );
 
-      // Solo eliminar Auth si fue creado en esta misma request.
-      // Si ya existía, no debemos borrarlo.
-      if (authUserWasCreated) {
-        await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      if (resolved.created) {
+        await supabaseAdmin.auth.admin.deleteUser(resolved.authUserId);
       }
 
       return NextResponse.json(
@@ -235,7 +283,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Este es el mismo ID que viaja luego a Mercado Pago
     return NextResponse.json({
       ok: true,
       userId: newProfile.auth_user_id,
