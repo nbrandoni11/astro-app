@@ -40,15 +40,18 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const today = new Date(
+        const targetDate = new Date(
             new Date().toLocaleString("en-US", {
                 timeZone: user.timezone || "UTC",
             })
         );
 
-        const formattedDate = `${today.getFullYear()}-${String(
-            today.getMonth() + 1
-        ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        // A las 22:00 enviamos la lectura correspondiente al día siguiente.
+        targetDate.setDate(targetDate.getDate() + 1);
+
+        const formattedDate = `${targetDate.getFullYear()}-${String(
+            targetDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
 
         const { data: existingHoroscopes, error: existingError } =
             await supabaseAdmin
@@ -120,9 +123,9 @@ export async function POST(req: NextRequest) {
             lat: user.birth_lat,
             lon: user.birth_lon,
             tzone: user.birth_tzone,
-            transit_day: today.getDate(),
-            transit_month: today.getMonth() + 1,
-            transit_year: today.getFullYear(),
+            transit_day: targetDate.getDate(),
+            transit_month: targetDate.getMonth() + 1,
+            transit_year: targetDate.getFullYear(),
         });
 
         if (!transits || transits.status === false) {
