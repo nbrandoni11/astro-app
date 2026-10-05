@@ -121,7 +121,7 @@ function SuscripcionContent() {
               </span>
               <span className={styles.afterPayStep}>
                 <span className={styles.afterPayNum}>3</span>
-                Recibís tu primera lectura esa noche
+                Recibís cada noche a las 22:00 la lectura del día siguiente
               </span>
             </div>
           </div>
@@ -156,7 +156,7 @@ function SuscripcionContent() {
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
                       <line x1="1" y1="10" x2="23" y2="10" />
                     </svg>
-                    Pagar con Mercado Pago
+                    Suscribirme con Mercado Pago
                   </>
                 )}
               </button>
