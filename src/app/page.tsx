@@ -428,7 +428,7 @@ export default function LandingPage() {
           />
 
           <p className={styles.footerText}>
-            © 2025 — Todos los derechos reservados
+            © 2026 — Todos los derechos reservados
           </p>
         </div>
       </footer>
