@@ -13,6 +13,15 @@ type HoroscopeAIResponse = {
 };
 
 export async function POST(req: NextRequest) {
+    const secret = process.env.CRON_SECRET;
+
+    if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+        return NextResponse.json(
+            { ok: false, error: "Unauthorized" },
+            { status: 401 }
+        );
+    }
+
     try {
         const body = await req.json();
         const { userId } = body;
