@@ -36,7 +36,8 @@ type WhatsAppMessage2 = {
 async function sendTwilioTemplate(
     to: string,
     contentSid: string,
-    variables: Record<string, string>
+    variables: Record<string, string>,
+    statusCallback: string
 ) {
     return fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
@@ -55,6 +56,7 @@ async function sendTwilioTemplate(
                 To: `whatsapp:${to}`,
                 ContentSid: contentSid,
                 ContentVariables: JSON.stringify(variables),
+                StatusCallback: statusCallback,
             }),
         }
     );
@@ -342,6 +344,11 @@ export async function GET(req: Request) {
             );
 
             try {
+                const appUrl =
+                    process.env.APP_URL ||
+                    process.env.NEXT_PUBLIC_APP_URL ||
+                    "https://idastral.com";
+
                 // ─────────────────────────────────────────────
                 // MENSAJE 1
                 //
@@ -359,22 +366,40 @@ export async function GET(req: Request) {
                         "2": panoramaGeneral,
                         "3": trabajoDinero,
                         "4": relaciones,
-                    }
+                    },
+                    `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=1`
                 );
 
-                if (!response1.ok) {
-                    const text = await response1.text();
+                const response1Text = await response1.text();
+                let response1Data: any = null;
 
+                try {
+                    response1Data = JSON.parse(response1Text);
+                } catch {
+                    // Twilio normally returns JSON; keep the raw body for errors.
+                }
+
+                if (!response1.ok || !response1Data?.sid) {
                     await supabaseAdmin
                         .from("daily_horoscopes")
                         .update({
                             send_status: "error",
-                            send_error: `Error mensaje 1: ${text}`,
+                            send_error: `Error mensaje 1: ${response1Text}`,
                         })
                         .eq("id", item.id);
 
                     continue;
                 }
+
+                await supabaseAdmin
+                    .from("daily_horoscopes")
+                    .update({
+                        twilio_message_sid_1: response1Data.sid,
+                        twilio_status_1: response1Data.status || "accepted",
+                        send_status: "submitting",
+                        send_error: null,
+                    })
+                    .eq("id", item.id);
 
                 // Esperar 4 segundos antes del segundo mensaje.
                 await sleep(4000);
@@ -394,32 +419,40 @@ export async function GET(req: Request) {
                         "1": energiaInterna,
                         "2": sintesisDia,
                         "3": baseAstrologica,
-                    }
+                    },
+                    `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=2`
                 );
 
-                if (!response2.ok) {
-                    const text = await response2.text();
+                const response2Text = await response2.text();
+                let response2Data: any = null;
 
+                try {
+                    response2Data = JSON.parse(response2Text);
+                } catch {
+                    // Twilio normally returns JSON; keep the raw body for errors.
+                }
+
+                if (!response2.ok || !response2Data?.sid) {
                     await supabaseAdmin
                         .from("daily_horoscopes")
                         .update({
                             send_status: "error",
-                            send_error: `Error mensaje 2: ${text}`,
+                            send_error: `Error mensaje 2: ${response2Text}`,
                         })
                         .eq("id", item.id);
 
                     continue;
                 }
 
-                // ─────────────────────────────────────────────
-                // MARCAR COMO ENVIADO
-                // ─────────────────────────────────────────────
-
+                // Twilio accepted both messages. Final delivery is confirmed
+                // asynchronously by /api/twilio-status.
                 await supabaseAdmin
                     .from("daily_horoscopes")
                     .update({
-                        send_status: "sent",
-                        sent_at: new Date().toISOString(),
+                        twilio_message_sid_2: response2Data.sid,
+                        twilio_status_2: response2Data.status || "accepted",
+                        send_status: "submitted",
+                        sent_at: null,
                         send_error: null,
                     })
                     .eq("id", item.id);
