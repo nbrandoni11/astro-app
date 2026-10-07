@@ -66,6 +66,10 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function normalizePhone(value: string | null | undefined) {
+    return String(value || "").replace(/\\D/g, "");
+}
+
 // Limpia caracteres que pueden generar problemas dentro de ContentVariables.
 function sanitizeContentVariable(value: string) {
     return value
@@ -212,8 +216,21 @@ export async function GET(req: Request) {
         }
 
         const results = [];
+        const processedPhones = new Set<string>();
 
         for (const item of (pending || []) as PendingHoroscope[]) {
+            // Atomically claim the row so parallel invocations cannot send it twice.
+            const { data: claimed, error: claimError } = await supabaseAdmin
+                .from("daily_horoscopes")
+                .update({ send_status: "processing" })
+                .eq("id", item.id)
+                .eq("send_status", "pending")
+                .select("id")
+                .maybeSingle();
+
+            if (claimError || !claimed) {
+                continue;
+            }
             const { data: users, error: userError } = await supabaseAdmin
                 .from("users")
                 .select("id, full_name, phone_whatsapp")
@@ -246,6 +263,22 @@ export async function GET(req: Request) {
 
                 continue;
             }
+
+            const normalizedPhone = normalizePhone(user.phone_whatsapp);
+
+            if (processedPhones.has(normalizedPhone)) {
+                await supabaseAdmin
+                    .from("daily_horoscopes")
+                    .update({
+                        send_status: "error",
+                        send_error: "WhatsApp duplicado en otro horóscopo pendiente",
+                    })
+                    .eq("id", item.id);
+
+                continue;
+            }
+
+            processedPhones.add(normalizedPhone);
 
             const rawMessage1 = item.whatsapp_message_1?.trim();
             const rawMessage2 = item.whatsapp_message_2?.trim();
