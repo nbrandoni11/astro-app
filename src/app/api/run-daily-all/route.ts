@@ -28,7 +28,8 @@ async function runDailyAll(req: NextRequest) {
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
-            .eq("subscription_status", "active");
+            .eq("subscription_status", "active")
+            .not("auth_user_id", "is", null);
 
         if (error) {
             return NextResponse.json(
