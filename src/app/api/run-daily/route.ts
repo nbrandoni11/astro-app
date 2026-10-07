@@ -380,8 +380,14 @@ La persona debe sentir que la interpretación fue construida específicamente a 
                             content: `
 Generá la lectura diaria para esta persona.
 
-Fecha local del usuario:
+Fecha exacta de esta lectura:
 ${formattedDate}
+
+IMPORTANTE SOBRE LA FECHA:
+Esta lectura se genera y se envía la noche anterior para que la persona la tenga antes de comenzar el día indicado arriba.
+NO uses las palabras "hoy", "mañana", "esta noche" ni otras referencias relativas al momento de envío.
+Referite a "durante el día", "en esta jornada" o, cuando aporte claridad, a la fecha exacta ${formattedDate}.
+Esto aplica tanto a "full" como a las seis secciones breves.
 
 Timezone:
 ${user.timezone}
