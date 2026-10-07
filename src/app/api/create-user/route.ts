@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+function normalizePhone(value: string | null | undefined) {
+  return String(value || "").replace(/\\D/g, "");
+}
+
+async function findActivePhoneConflict(phone: string, excludeProfileId?: string | null) {
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) return null;
+
+  let query = supabaseAdmin
+    .from("users")
+    .select("id,phone_whatsapp")
+    .eq("subscription_status", "active");
+
+  if (excludeProfileId) query = query.neq("id", excludeProfileId);
+
+  const { data, error } = await query;
+  if (error) throw new Error("Error verificando el WhatsApp");
+
+  return data?.find((profile) => normalizePhone(profile.phone_whatsapp) === normalizedPhone) ?? null;
+}
+
 async function resolveAuthUser(
   normalizedEmail: string,
   preferredAuthUserId?: string | null
@@ -119,6 +140,22 @@ export async function POST(req: Request) {
       profiles?.find((profile) => profile.subscription_status === "active") ??
       profiles?.[0] ??
       null;
+
+    const activePhoneConflict = await findActivePhoneConflict(
+      String(phone_whatsapp),
+      existingProfile?.id ?? null
+    );
+
+    if (activePhoneConflict) {
+      return NextResponse.json(
+        {
+          ok: false,
+          whatsappAlreadyActive: true,
+          error: "Este WhatsApp ya está vinculado a una suscripción activa.",
+        },
+        { status: 409 }
+      );
+    }
 
     if (existingProfile) {
       let resolved;
