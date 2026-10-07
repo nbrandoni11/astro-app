@@ -6,6 +6,10 @@ import { getMercadoPagoSubscription } from "@/lib/mercadopago-subscription";
 
 const MONTHLY_PRICE_ARS = 4990;
 
+function normalizePhone(value: string | null | undefined) {
+  return String(value || "").replace(/\\D/g, "");
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -23,7 +27,7 @@ export async function POST(req: Request) {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("users")
       .select(
-        "id,email,subscription_status,mercadopago_subscription_id,mercadopago_subscription_init_point"
+        "id,email,phone_whatsapp,subscription_status,mercadopago_subscription_id,mercadopago_subscription_init_point"
       )
       .eq("auth_user_id", userId)
       .single();
@@ -47,6 +51,38 @@ export async function POST(req: Request) {
         { ok: false, alreadyActive: true, error: "La suscripción ya está activa" },
         { status: 409 }
       );
+    }
+
+    const normalizedPhone = normalizePhone(profile.phone_whatsapp);
+
+    if (normalizedPhone) {
+      const { data: activeProfiles, error: activeProfilesError } = await supabaseAdmin
+        .from("users")
+        .select("id,phone_whatsapp")
+        .eq("subscription_status", "active")
+        .neq("id", profile.id);
+
+      if (activeProfilesError) {
+        return NextResponse.json(
+          { ok: false, error: "Error verificando el WhatsApp" },
+          { status: 500 }
+        );
+      }
+
+      const phoneConflict = activeProfiles?.some(
+        (candidate) => normalizePhone(candidate.phone_whatsapp) === normalizedPhone
+      );
+
+      if (phoneConflict) {
+        return NextResponse.json(
+          {
+            ok: false,
+            whatsappAlreadyActive: true,
+            error: "Este WhatsApp ya está vinculado a una suscripción activa.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
     if (profile.mercadopago_subscription_id) {
