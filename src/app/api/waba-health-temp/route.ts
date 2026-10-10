@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         null,
     }));
 
-    return NextResponse.json({ ok: true, senders });
+    return NextResponse.json({ ok: true, configuredSender: maskSender(process.env.TWILIO_WHATSAPP_NUMBER), senders });
   } catch (error: any) {
     return NextResponse.json(
       { ok: false, error: error?.message || "Twilio sender lookup failed" },
