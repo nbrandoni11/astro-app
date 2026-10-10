@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     const response = await fetch(
-      "https://messaging.twilio.com/v2/Channels/Senders?PageSize=50",
+      "https://messaging.twilio.com/v2/Channels/Senders?Channel=whatsapp&PageSize=50",
       {
         headers: {
           Authorization:
