@@ -129,15 +129,18 @@ export async function POST(req: Request) {
     const status1 = horoscope.twilio_status_1;
     const status2 = horoscope.twilio_status_2;
 
-    if (isFailed(status)) {
+    if (isFailed(status1) || isFailed(status2)) {
+      const failedPart = isFailed(status1) ? "1" : "2";
+      const failedStatus = isFailed(status1) ? status1 : status2;
+
       await supabaseAdmin
         .from("daily_horoscopes")
         .update({
           send_status: "error",
           send_error: [
-            `WhatsApp mensaje ${part}: ${status}`,
-            errorCode ? `código ${errorCode}` : null,
-            errorMessage || null,
+            `WhatsApp mensaje ${failedPart}: ${failedStatus}`,
+            part === failedPart && errorCode ? `código ${errorCode}` : null,
+            part === failedPart ? errorMessage || null : null,
           ]
             .filter(Boolean)
             .join(" · "),
