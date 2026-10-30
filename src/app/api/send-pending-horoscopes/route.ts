@@ -1,3 +1,4 @@
+import { datedSections, sanitizeContentVariable } from "@/lib/whatsapp-content";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -17,6 +18,7 @@ type PendingHoroscope = {
     id: string;
     user_id: string;
     horoscope_text: string;
+    horoscope_date: string;
     whatsapp_message_1: string | null;
     whatsapp_message_2: string | null;
 };
@@ -67,123 +69,84 @@ function sleep(ms: number) {
 }
 
 function normalizePhone(value: string | null | undefined) {
-    return String(value || "").replace(/\\D/g, "");
+    return String(value || "").replace(/\D/g, "");
 }
 
-// Limpia caracteres que pueden generar problemas dentro de ContentVariables.
-function sanitizeContentVariable(value: string) {
-    return value
-        .replace(/[\r\n\t]+/g, " ")
-        .replace(/\s{2,}/g, " ")
-        .trim();
-}
-
-// Recorta intentando conservar una oración completa.
-// Solo se utiliza como protección de emergencia si OpenAI supera el límite.
-function smartTrim(value: string, maxLength: number) {
-    const clean = sanitizeContentVariable(value);
-
-    if (clean.length <= maxLength) {
-        return clean;
+// Explicit, authenticated retry of one failed part. Never replay the delivered part.
+export async function POST(req: Request) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+        return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-
-    const candidate = clean.slice(0, maxLength);
-
-    // Intentar terminar en el último final de oración razonable.
-    const sentenceEnd = Math.max(
-        candidate.lastIndexOf(". "),
-        candidate.lastIndexOf("! "),
-        candidate.lastIndexOf("? ")
-    );
-
-    // Solo usamos el corte por oración si no elimina demasiado contenido.
-    if (sentenceEnd >= Math.floor(maxLength * 0.7)) {
-        return candidate.slice(0, sentenceEnd + 1).trim();
+    let body: { horoscopeId?: string; part?: number };
+    try { body = await req.json(); } catch {
+        return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
     }
-
-    // Si no encontramos una oración suficientemente cerca,
-    // cortar en la última palabra completa.
-    const lastSpace = candidate.lastIndexOf(" ");
-
-    if (lastSpace > 0) {
-        return candidate.slice(0, lastSpace).trim() + "…";
+    if (!body.horoscopeId || ![1, 2].includes(body.part || 0)) {
+        return NextResponse.json({ ok: false, error: "horoscopeId and part (1 or 2) required" }, { status: 400 });
     }
-
-    return candidate.trim();
-}
-
-// Ajusta proporcionalmente tres secciones si la suma supera
-// el presupuesto disponible para las variables del template.
-function fitThreeSections(
-    first: string,
-    second: string,
-    third: string,
-    maxTotal: number
-): [string, string, string] {
-    let a = sanitizeContentVariable(first);
-    let b = sanitizeContentVariable(second);
-    let c = sanitizeContentVariable(third);
-
-    const total = a.length + b.length + c.length;
-
-    if (total <= maxTotal) {
-        return [a, b, c];
-    }
-
-    // Distribuir el espacio proporcionalmente según
-    // la longitud original de cada sección.
-    const ratio = maxTotal / total;
-
-    let maxA = Math.floor(a.length * ratio);
-    let maxB = Math.floor(b.length * ratio);
-    let maxC = Math.floor(c.length * ratio);
-
-    // Garantizar que ninguna sección desaparezca por completo.
-    maxA = Math.max(maxA, 180);
-    maxB = Math.max(maxB, 180);
-    maxC = Math.max(maxC, 180);
-
-    // Si los mínimos hicieron que volvamos a superar el presupuesto,
-    // repartimos el espacio de manera uniforme.
-    if (maxA + maxB + maxC > maxTotal) {
-        const equalBudget = Math.floor(maxTotal / 3);
-
-        maxA = equalBudget;
-        maxB = equalBudget;
-        maxC = maxTotal - equalBudget * 2;
-    }
-
-    a = smartTrim(a, maxA);
-    b = smartTrim(b, maxB);
-    c = smartTrim(c, maxC);
-
-    // Segunda comprobación por seguridad.
-    let fittedTotal = a.length + b.length + c.length;
-
-    if (fittedTotal > maxTotal) {
-        const excess = fittedTotal - maxTotal;
-
-        // Reducimos primero la sección más larga.
-        const sections = [
-            { key: "a", value: a },
-            { key: "b", value: b },
-            { key: "c", value: c },
-        ].sort((x, y) => y.value.length - x.value.length);
-
-        const longest = sections[0];
-
-        if (longest.key === "a") {
-            a = smartTrim(a, Math.max(150, a.length - excess - 5));
-        } else if (longest.key === "b") {
-            b = smartTrim(b, Math.max(150, b.length - excess - 5));
-        } else {
-            c = smartTrim(c, Math.max(150, c.length - excess - 5));
+    const part = body.part as 1 | 2;
+    const statusColumn = part === 1 ? "twilio_status_1" : "twilio_status_2";
+    try {
+        const { data: item, error } = await supabaseAdmin.from("daily_horoscopes")
+            .select("id,user_id,horoscope_date,whatsapp_message_1,whatsapp_message_2,twilio_status_1,twilio_status_2")
+            .eq("id", body.horoscopeId).single();
+        if (error || !item) return NextResponse.json({ ok: false, error: "Horoscope not found" }, { status: 404 });
+        const previousStatus = item[statusColumn];
+        if (previousStatus !== "failed" && previousStatus !== "undelivered") {
+            return NextResponse.json({ ok: false, error: "Only a failed part can be retried" }, { status: 409 });
         }
-
-        fittedTotal = a.length + b.length + c.length;
+        const { data: user } = await supabaseAdmin.from("users")
+            .select("full_name,phone_whatsapp,subscription_status").eq("id", item.user_id).single();
+        if (!user?.phone_whatsapp || user.subscription_status !== "active") {
+            return NextResponse.json({ ok: false, error: "No active recipient" }, { status: 409 });
+        }
+        const raw = JSON.parse(part === 1 ? item.whatsapp_message_1 : item.whatsapp_message_2);
+        const sections: [string, string, string] = part === 1
+            ? [raw.panorama_general, raw.trabajo_dinero, raw.relaciones]
+            : [raw.energia_interna, raw.sintesis_dia, raw.base_astrologica];
+        if (sections.some(value => typeof value !== "string" || !value.trim())) {
+            throw new Error("Missing WhatsApp sections");
+        }
+        const [a, b, c] = datedSections(sections, item.horoscope_date,
+            part === 1 ? MESSAGE_1_VARIABLES_MAX : MESSAGE_2_VARIABLES_MAX);
+        const variables: Record<string, string> = part === 1
+            ? { "1": sanitizeContentVariable(user.full_name?.split(" ")[0] || "Astral"), "2": a, "3": b, "4": c }
+            : { "1": a, "2": b, "3": c };
+        const { data: claimed, error: claimError } = await supabaseAdmin.from("daily_horoscopes")
+            .update({ [statusColumn]: "retrying" }).eq("id", item.id)
+            .eq(statusColumn, previousStatus).select("id").maybeSingle();
+        if (claimError) throw new Error(claimError.message);
+        if (!claimed) return NextResponse.json({ ok: false, error: "Already being retried" }, { status: 409 });
+        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://idastral.com";
+        let response: Response;
+        try {
+            response = await sendTwilioTemplate(user.phone_whatsapp,
+                part === 1 ? DAILY_HOROSCOPE_1_CONTENT_SID : DAILY_HOROSCOPE_2_CONTENT_SID,
+                variables, `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=${part}`);
+        } catch {
+            // An ambiguous network outcome must be reconciled before another attempt.
+            await supabaseAdmin.from("daily_horoscopes").update({ send_status: "error",
+                send_error: `Retry part ${part}: network outcome unknown; reconcile Twilio before retrying` }).eq("id", item.id);
+            throw new Error("Twilio retry outcome unknown");
+        }
+        const data = await response.json();
+        if (!response.ok || !data.sid) {
+            await supabaseAdmin.from("daily_horoscopes").update({ [statusColumn]: previousStatus,
+                send_status: "error", send_error: `Retry part ${part}: ${data.code || response.status} ${data.message || "rejected"}` })
+                .eq("id", item.id).eq(statusColumn, "retrying");
+            return NextResponse.json({ ok: false, error: "Twilio rejected retry", code: data.code }, { status: 502 });
+        }
+        const sidColumn = part === 1 ? "twilio_message_sid_1" : "twilio_message_sid_2";
+        const { error: saveError } = await supabaseAdmin.from("daily_horoscopes")
+            .update({ [sidColumn]: data.sid, [statusColumn]: data.status || "accepted",
+                send_status: "submitted", send_error: null, sent_at: null })
+            .eq("id", item.id).eq(statusColumn, "retrying");
+        if (saveError) throw new Error(saveError.message);
+        return NextResponse.json({ ok: true, sid: data.sid, part, status: data.status });
+    } catch (error) {
+        return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Retry failed" }, { status: 500 });
     }
-
-    return [a, b, c];
 }
 
 export async function GET(req: Request) {
@@ -200,7 +163,7 @@ export async function GET(req: Request) {
         const { data: pending, error } = await supabaseAdmin
             .from("daily_horoscopes")
             .select(
-                "id, user_id, horoscope_text, whatsapp_message_1, whatsapp_message_2"
+                "id, user_id, horoscope_text, horoscope_date, whatsapp_message_1, whatsapp_message_2"
             )
             .eq("send_status", "pending")
             .limit(10);
@@ -354,10 +317,9 @@ export async function GET(req: Request) {
                 panoramaGeneral,
                 trabajoDinero,
                 relaciones,
-            ] = fitThreeSections(
-                message1Data.panorama_general,
-                message1Data.trabajo_dinero,
-                message1Data.relaciones,
+            ] = datedSections(
+                [message1Data.panorama_general, message1Data.trabajo_dinero, message1Data.relaciones],
+                item.horoscope_date,
                 MESSAGE_1_VARIABLES_MAX
             );
 
@@ -369,10 +331,9 @@ export async function GET(req: Request) {
                 energiaInterna,
                 sintesisDia,
                 baseAstrologica,
-            ] = fitThreeSections(
-                message2Data.energia_interna,
-                message2Data.sintesis_dia,
-                message2Data.base_astrologica,
+            ] = datedSections(
+                [message2Data.energia_interna, message2Data.sintesis_dia, message2Data.base_astrologica],
+                item.horoscope_date,
                 MESSAGE_2_VARIABLES_MAX
             );
 

@@ -96,6 +96,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("daily_horoscopes")
+      .select("twilio_message_sid_1,twilio_message_sid_2,twilio_status_1,twilio_status_2")
+      .eq("id", horoscopeId).single();
+    if (currentError || !current) throw new Error("Horoscope not found");
+    const currentSid = part === "1" ? current.twilio_message_sid_1 : current.twilio_message_sid_2;
+    const currentStatus = part === "1" ? current.twilio_status_1 : current.twilio_status_2;
+    // Ignore callbacks from an older attempt and out-of-order delivery regressions.
+    if ((currentStatus === "retrying" && currentSid === sid) ||
+        (currentStatus !== "retrying" && currentSid && currentSid !== sid) ||
+        (isDelivered(currentStatus) && !isDelivered(status)) ||
+        (currentStatus === "read" && status === "delivered")) {
+      return NextResponse.json({ ok: true, ignored: true });
+    }
+
     const update =
       part === "1"
         ? {
@@ -118,7 +133,7 @@ export async function POST(req: Request) {
 
     const { data: horoscope, error: selectError } = await supabaseAdmin
       .from("daily_horoscopes")
-      .select("twilio_status_1,twilio_status_2")
+      .select("twilio_status_1,twilio_status_2,send_error")
       .eq("id", horoscopeId)
       .single();
 
@@ -137,7 +152,7 @@ export async function POST(req: Request) {
         .from("daily_horoscopes")
         .update({
           send_status: "error",
-          send_error: [
+          send_error: part !== failedPart && horoscope.send_error ? horoscope.send_error : [
             `WhatsApp mensaje ${failedPart}: ${failedStatus}`,
             part === failedPart && errorCode ? `código ${errorCode}` : null,
             part === failedPart ? errorMessage || null : null,
