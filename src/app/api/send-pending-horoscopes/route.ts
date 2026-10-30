@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
         return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    let body: { horoscopeId?: string; part?: number; brief?: boolean };
+    let body: { horoscopeId?: string; part?: number; brief?: boolean; legacySecondPart?: boolean };
     try { body = await req.json(); } catch {
         return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
     }
@@ -117,6 +117,13 @@ export async function POST(req: Request) {
         const variables: Record<string, string> = part === 1
             ? { "1": sanitizeContentVariable(user.full_name?.split(" ")[0] || "Astral"), "2": a, "3": b, "4": c }
             : { "1": a, "2": b, "3": c };
+        // The previously approved single-variable template provides an independent comparison.
+        const useLegacy = part === 2 && body.legacySecondPart === true;
+        const contentSid = useLegacy ? "HX2b143759542c2a6ea54bfbe3b050ed67"
+            : part === 1 ? DAILY_HOROSCOPE_1_CONTENT_SID : DAILY_HOROSCOPE_2_CONTENT_SID;
+        const contentVariables = useLegacy
+            ? { "1": `Energía interna: ${a} Síntesis del día: ${b} Base astrológica: ${c}` }
+            : variables;
         const { data: claimed, error: claimError } = await supabaseAdmin.from("daily_horoscopes")
             .update({ [statusColumn]: "retrying" }).eq("id", item.id)
             .eq(statusColumn, previousStatus).select("id").maybeSingle();
@@ -126,8 +133,7 @@ export async function POST(req: Request) {
         let response: Response;
         try {
             response = await sendTwilioTemplate(user.phone_whatsapp,
-                part === 1 ? DAILY_HOROSCOPE_1_CONTENT_SID : DAILY_HOROSCOPE_2_CONTENT_SID,
-                variables, `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=${part}`);
+                contentSid, contentVariables, `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=${part}`);
         } catch {
             // An ambiguous network outcome must be reconciled before another attempt.
             await supabaseAdmin.from("daily_horoscopes").update({ send_status: "error",
