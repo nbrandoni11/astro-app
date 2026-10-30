@@ -41,3 +41,7 @@ create policy "Read own reports" on public.astro_reports for select to authentic
 revoke all on public.astro_reports from anon, authenticated;
 grant select on public.astro_reports to authenticated;
 grant all on public.astro_reports to service_role;
+
+-- The handler filters users by their current location's local 22:00 hour.
+select cron.alter_job(jobid, schedule := '*/15 * * * *')
+from cron.job where jobname = 'id-astral-daily-horoscope';

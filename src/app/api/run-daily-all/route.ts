@@ -98,7 +98,7 @@ async function runDailyAll(req: NextRequest) {
             processedPhones.add(normalizedPhone);
 
             try {
-                reportsDue.push({ user, trips: trips ?? [] });
+                if (user.residence) reportsDue.push({ user, trips: trips ?? [] });
                 const response = await fetch(`${baseUrl}/api/run-daily`, {
                     method: "POST",
                     headers: {
