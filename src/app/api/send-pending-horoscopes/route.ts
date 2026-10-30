@@ -1,4 +1,4 @@
-import { datedSections, sanitizeContentVariable } from "@/lib/whatsapp-content";
+import { datedSections, sanitizeContentVariable, smartTrim } from "@/lib/whatsapp-content";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
         return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
-    let body: { horoscopeId?: string; part?: number };
+    let body: { horoscopeId?: string; part?: number; brief?: boolean };
     try { body = await req.json(); } catch {
         return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
     }
@@ -108,7 +108,11 @@ export async function POST(req: Request) {
         if (sections.some(value => typeof value !== "string" || !value.trim())) {
             throw new Error("Missing WhatsApp sections");
         }
-        const [a, b, c] = datedSections(sections, item.horoscope_date,
+        // An explicit brief retry isolates variable length/content without altering the saved reading.
+        const retrySections = body.brief === true
+            ? sections.map(section => smartTrim(section, 80)) as [string, string, string]
+            : sections;
+        const [a, b, c] = datedSections(retrySections, item.horoscope_date,
             part === 1 ? MESSAGE_1_VARIABLES_MAX : MESSAGE_2_VARIABLES_MAX);
         const variables: Record<string, string> = part === 1
             ? { "1": sanitizeContentVariable(user.full_name?.split(" ")[0] || "Astral"), "2": a, "3": b, "4": c }
