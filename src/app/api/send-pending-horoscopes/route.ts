@@ -1,18 +1,18 @@
-import { datedSections, sanitizeContentVariable, smartTrim } from "@/lib/whatsapp-content";
+import { fitThreeSections, horoscopeDateLabel, smartTrim } from "@/lib/whatsapp-content";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DAILY_HOROSCOPE_1_CONTENT_SID =
-    "HX1bc424e37b2485ade3467907a7076e03";
+    "HX19035d228e5c28dff4cc2c1a6b551204";
 
 const DAILY_HOROSCOPE_2_CONTENT_SID =
-    "HX40e951cdf092a089c91fbf5f8f269792";
+    "HX2be5cad636aa6ea472fd533b8b02ef34";
 
 // Límites conservadores para las variables.
 // El mensaje final de Twilio tiene un límite de 1600 caracteres.
 // Dejamos margen para todo el contenido fijo de los templates.
 const MESSAGE_1_VARIABLES_MAX = 1125;
-const MESSAGE_2_VARIABLES_MAX = 1200;
+const MESSAGE_2_VARIABLES_MAX = 900;
 
 type PendingHoroscope = {
     id: string;
@@ -64,6 +64,11 @@ async function sendTwilioTemplate(
     );
 }
 
+function templateDate(value: string) {
+    horoscopeDateLabel(value); // Validate the stored reading date before formatting.
+    return value.split("-").reverse().join("/");
+}
+
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -112,17 +117,17 @@ export async function POST(req: Request) {
         const retrySections = body.brief === true
             ? sections.map(section => smartTrim(section, 80)) as [string, string, string]
             : sections;
-        const [a, b, c] = datedSections(retrySections, item.horoscope_date,
+        const date = templateDate(item.horoscope_date);
+        const [a, b, c] = fitThreeSections(...retrySections,
             part === 1 ? MESSAGE_1_VARIABLES_MAX : MESSAGE_2_VARIABLES_MAX);
         const variables: Record<string, string> = part === 1
-            ? { "1": sanitizeContentVariable(user.full_name?.split(" ")[0] || "Astral"), "2": a, "3": b, "4": c }
-            : { "1": a, "2": b, "3": c };
-        // The previously approved single-variable template provides an independent comparison.
+            ? { "1": smartTrim(user.full_name?.split(" ")[0] || "Astral", 60), "2": date, "3": a, "4": b, "5": c }
+            : { "1": date, "2": a, "3": b, "4": c };
         const useLegacy = part === 2 && body.legacySecondPart === true;
         const contentSid = useLegacy ? "HX2b143759542c2a6ea54bfbe3b050ed67"
             : part === 1 ? DAILY_HOROSCOPE_1_CONTENT_SID : DAILY_HOROSCOPE_2_CONTENT_SID;
         const contentVariables = useLegacy
-            ? { "1": `Energía interna: ${a} Síntesis del día: ${b} Base astrológica: ${c}` }
+            ? { "1": `Fecha de la lectura: ${date}. Energía interna: ${a} Síntesis del día: ${b} Base astrológica: ${c}` }
             : variables;
         const { data: claimed, error: claimError } = await supabaseAdmin.from("daily_horoscopes")
             .update({ [statusColumn]: "retrying" }).eq("id", item.id)
@@ -315,9 +320,8 @@ export async function GET(req: Request) {
                 continue;
             }
 
-            const firstName = sanitizeContentVariable(
-                user.full_name?.split(" ")[0] || "Astral"
-            );
+            const firstName = smartTrim(user.full_name?.split(" ")[0] || "Astral", 60);
+            const readingDate = templateDate(item.horoscope_date);
 
             // ─────────────────────────────────────────────
             // MENSAJE 1 — CONTROL DE LONGITUD
@@ -327,9 +331,8 @@ export async function GET(req: Request) {
                 panoramaGeneral,
                 trabajoDinero,
                 relaciones,
-            ] = datedSections(
-                [message1Data.panorama_general, message1Data.trabajo_dinero, message1Data.relaciones],
-                item.horoscope_date,
+            ] = fitThreeSections(
+                message1Data.panorama_general, message1Data.trabajo_dinero, message1Data.relaciones,
                 MESSAGE_1_VARIABLES_MAX
             );
 
@@ -341,9 +344,8 @@ export async function GET(req: Request) {
                 energiaInterna,
                 sintesisDia,
                 baseAstrologica,
-            ] = datedSections(
-                [message2Data.energia_interna, message2Data.sintesis_dia, message2Data.base_astrologica],
-                item.horoscope_date,
+            ] = fitThreeSections(
+                message2Data.energia_interna, message2Data.sintesis_dia, message2Data.base_astrologica,
                 MESSAGE_2_VARIABLES_MAX
             );
 
@@ -357,9 +359,10 @@ export async function GET(req: Request) {
                 // MENSAJE 1
                 //
                 // {{1}} = nombre
-                // {{2}} = Panorama general
-                // {{3}} = Trabajo y dinero
-                // {{4}} = Relaciones
+                // {{2}} = Fecha de lectura
+                // {{3}} = Panorama general
+                // {{4}} = Trabajo y dinero
+                // {{5}} = Relaciones
                 // ─────────────────────────────────────────────
 
                 const response1 = await sendTwilioTemplate(
@@ -367,9 +370,10 @@ export async function GET(req: Request) {
                     DAILY_HOROSCOPE_1_CONTENT_SID,
                     {
                         "1": firstName,
-                        "2": panoramaGeneral,
-                        "3": trabajoDinero,
-                        "4": relaciones,
+                        "2": readingDate,
+                        "3": panoramaGeneral,
+                        "4": trabajoDinero,
+                        "5": relaciones,
                     },
                     `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=1`
                 );
@@ -411,18 +415,20 @@ export async function GET(req: Request) {
                 // ─────────────────────────────────────────────
                 // MENSAJE 2
                 //
-                // {{1}} = Energía interna
-                // {{2}} = Síntesis del día
-                // {{3}} = Base astrológica
+                // {{1}} = Fecha de lectura
+                // {{2}} = Energía interna
+                // {{3}} = Síntesis del día
+                // {{4}} = Base astrológica
                 // ─────────────────────────────────────────────
 
                 const response2 = await sendTwilioTemplate(
                     user.phone_whatsapp,
                     DAILY_HOROSCOPE_2_CONTENT_SID,
                     {
-                        "1": energiaInterna,
-                        "2": sintesisDia,
-                        "3": baseAstrologica,
+                        "1": readingDate,
+                        "2": energiaInterna,
+                        "3": sintesisDia,
+                        "4": baseAstrologica,
                     },
                     `${appUrl}/api/twilio-status?horoscopeId=${item.id}&part=2`
                 );
