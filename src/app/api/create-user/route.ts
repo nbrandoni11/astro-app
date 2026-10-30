@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+import { validateLocation } from "@/lib/location-time";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function normalizePhone(value: string | null | undefined) {
-  return String(value || "").replace(/\\D/g, "");
+  return String(value || "").replace(/\D/g, "");
 }
 
 async function findActivePhoneConflict(phone: string, excludeProfileId?: string | null) {
@@ -111,6 +113,9 @@ export async function POST(req: Request) {
       );
     }
 
+    let residence;
+    try { residence = validateLocation(body.residence); } catch { return NextResponse.json({ ok: false, error: "Seleccioná ciudad y país de residencia." }, { status: 400 }); }
+
     const normalizedEmail = String(email).trim().toLowerCase();
 
     // There can be legacy/test duplicate profiles. Prefer an active profile,
@@ -158,6 +163,11 @@ export async function POST(req: Request) {
     }
 
     if (existingProfile) {
+      const session = await createClient();
+      const { data: { user: signedIn } } = await session.auth.getUser();
+      if (!signedIn || signedIn.id !== existingProfile.auth_user_id) {
+        return NextResponse.json({ ok: false, error: "Este email ya tiene una cuenta. Ingresá para actualizar tus datos." }, { status: 409 });
+      }
       let resolved;
 
       try {
@@ -229,7 +239,8 @@ export async function POST(req: Request) {
           birth_lat,
           birth_lon,
           birth_tzone,
-          timezone,
+          timezone: residence.timezone,
+          residence,
           birth_place_input: birth_place_input ?? null,
           birth_place_resolved: birth_place_resolved ?? null,
         })
@@ -292,7 +303,8 @@ export async function POST(req: Request) {
           birth_lat,
           birth_lon,
           birth_tzone,
-          timezone,
+          timezone: residence.timezone,
+          residence,
           birth_place_input: birth_place_input ?? null,
           birth_place_resolved: birth_place_resolved ?? null,
           subscription_status: "inactive",

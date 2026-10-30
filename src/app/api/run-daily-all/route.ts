@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deliveryTimezone, localParts } from "@/lib/location-time";
+import { ensureAnnualReports } from "@/lib/annual-reports";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 function getBaseUrl(req: NextRequest) {
     if (process.env.APP_URL) return process.env.APP_URL;
@@ -17,7 +20,7 @@ function isAuthorized(req: NextRequest) {
 }
 
 function normalizePhone(value: string | null | undefined) {
-    return String(value || "").replace(/\\D/g, "");
+    return String(value || "").replace(/\D/g, "");
 }
 
 async function runDailyAll(req: NextRequest) {
@@ -60,8 +63,14 @@ async function runDailyAll(req: NextRequest) {
         });
 
         const processedPhones = new Set<string>();
+        const reportsDue = [];
 
         for (const user of orderedUsers) {
+            const { data: trips, error: tripsError } = await supabaseAdmin.from("user_trips").select("*").eq("user_id", user.id).is("cancelled_at", null);
+            if (tripsError) { generationResults.push({ userId: user.id, ok: false, error: "Error consultando viajes" }); continue; }
+            const timezone = deliveryTimezone(user.residence, trips ?? [], user.timezone);
+            if (localParts(new Date(), timezone).hour !== 22) continue;
+
             const normalizedPhone = normalizePhone(user.phone_whatsapp);
 
             if (!normalizedPhone) {
@@ -89,6 +98,7 @@ async function runDailyAll(req: NextRequest) {
             processedPhones.add(normalizedPhone);
 
             try {
+                reportsDue.push({ user, trips: trips ?? [] });
                 const response = await fetch(`${baseUrl}/api/run-daily`, {
                     method: "POST",
                     headers: {
@@ -150,6 +160,11 @@ async function runDailyAll(req: NextRequest) {
             };
         }
 
+        // Complete daily delivery before spending time on annual reports.
+        for (const entry of reportsDue) {
+            try { await ensureAnnualReports(entry.user, entry.trips); }
+            catch (e) { console.error("[annual-reports]", e instanceof Error ? e.message : "generation failed"); }
+        }
         return NextResponse.json({
             ok: true,
             generated: generationResults.length,

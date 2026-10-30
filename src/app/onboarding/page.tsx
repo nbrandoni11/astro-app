@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import styles from './onboarding.module.css';
+import CityPicker from '@/components/CityPicker';
+import type { Location } from '@/lib/location-time';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos (sin cambios)
@@ -271,7 +273,7 @@ export default function OnboardingPage() {
     matchReason: '',
   });
 
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [residence, setResidence] = useState<Location | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -339,6 +341,7 @@ export default function OnboardingPage() {
       setError('Faltan datos del lugar de nacimiento. Volvé al paso anterior y seleccioná una ciudad.');
       return;
     }
+    if (!residence) { setError('Seleccioná tu ciudad y país de residencia.'); return; }
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/create-user', {
@@ -356,7 +359,8 @@ export default function OnboardingPage() {
           birth_lat: birthPlace.lat,
           birth_lon: birthPlace.lon,
           birth_tzone: birthPlace.tzone,
-          timezone: userTimezone,
+          timezone: residence.timezone,
+          residence,
           birth_place_input: birthPlace.displayLabel,
           birth_place_resolved: birthPlace.resolvedLabel,
         }),
@@ -508,6 +512,8 @@ export default function OnboardingPage() {
                 Incluí el código de país. Ej: +54 para Argentina.
               </div>
 
+              <CityPicker label="Ciudad y país donde vivís" value={residence} onChange={setResidence} />
+              <p className={styles.formNote}>Te enviaremos la lectura a las 22:00 de esa ciudad. Podrás informar tus viajes desde tu cuenta.</p>
               {error && <p className={styles.errorMsg}>{error}</p>}
 
               <div className={styles.formFooter}>

@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/Button";
 import styles from "./panel.module.css";
 import { createClient } from "@/lib/supabase-server";
 import ReactMarkdown from "react-markdown";
+import AstroChart from "@/components/AstroChart";
+import LocationSettings from "@/components/LocationSettings";
+import GenerateReportsButton from "@/components/GenerateReportsButton";
+import { deliveryTimezone, effectiveLocation } from "@/lib/location-time";
 
 export default async function PanelPage() {
   const supabase = await createClient();
@@ -38,6 +42,13 @@ export default async function PanelPage() {
     .limit(1)
     .single();
 
+  const [{ data: trips }, { data: reports }] = await Promise.all([
+    supabase.from("user_trips").select("*").eq("user_id", profile.id).is("cancelled_at", null).order("starts_at"),
+    supabase.from("astro_reports").select("id,kind,year,status,chart,interpretation,return_at,location,location_basis,created_at").eq("user_id", profile.id).eq("kind", "solar").order("year", { ascending: false }).order("created_at", { ascending: false }),
+  ]);
+  const activeLocation = effectiveLocation(profile.residence, trips ?? []);
+  const timezone = deliveryTimezone(profile.residence, trips ?? [], profile.timezone);
+
   const nextPaymentDate = profile.subscription_next_payment_at
     ? new Intl.DateTimeFormat("es-AR", {
         day: "2-digit",
@@ -72,6 +83,9 @@ export default async function PanelPage() {
           <h1 className={styles.pageTitle}>Mi cuenta</h1>
         </header>
 
+        <nav className={styles.sectionNav} aria-label="Mi cuenta">
+          <a href="#carta-natal">Carta natal</a><a href="#revolucion-solar">Revolución solar</a><a href="#ubicacion">Residencia y viajes</a>
+        </nav>
         {/* Subscription status */}
         <div className={styles.card}>
           <div className={styles.cardTop}>
@@ -132,6 +146,7 @@ export default async function PanelPage() {
 
             <div className={styles.nextDeliveryText}>
               <p className={styles.nextDeliveryTime}>Cada noche · 22:00</p>
+              <p className={styles.nextDeliveryDesc}>{activeLocation?.label ?? timezone} · hora local</p>
 
               <p className={styles.nextDeliveryDesc}>
                 Recibís la lectura personalizada correspondiente al día siguiente.
@@ -144,6 +159,7 @@ export default async function PanelPage() {
         <div className={styles.card}>
           <div className={styles.cardLabel}>Último horóscopo</div>
 
+          {horoscope && <p className={styles.helpText}>Lectura del {horoscope.horoscope_date.split("-").reverse().join("/")}</p>}
           {horoscope ? (
             <div
               style={{
@@ -164,24 +180,34 @@ export default async function PanelPage() {
           )}
         </div>
 
-        {/* Natal Interpretation */}
-        {profile.natal_interpretation && (
-          <div className={styles.card}>
-            <div className={styles.cardLabel}>Tu Carta Natal</div>
+        <section className={styles.card} id="ubicacion">
+          <h2 className={styles.cardLabel}>Residencia y viajes</h2>
+          <LocationSettings residence={profile.residence ?? null} trips={trips ?? []} now={new Date().toISOString()} />
+        </section>
 
-            <div
-              style={{
-                fontSize: "0.875rem",
-                lineHeight: "1.6",
-                color: "var(--text-dim)",
-              }}
-            >
-              <ReactMarkdown>
-                {profile.natal_interpretation}
-              </ReactMarkdown>
-            </div>
-          </div>
-        )}
+        <section className={styles.card} id="carta-natal">
+          <h2 className={styles.sectionTitle}>Mi carta natal</h2>
+          <p className={styles.helpText}>Tu carta de nacimiento permanece disponible para consultarla cuando quieras. Viajar no modifica esta carta.</p>
+          {profile.natal_chart && <AstroChart data={profile.natal_chart} title="Tu carta natal" />}
+          {profile.natal_interpretation ? <details className={styles.reportDetails}><summary>Leer mi interpretación natal</summary><div className={styles.reading}><ReactMarkdown>{profile.natal_interpretation}</ReactMarkdown></div></details> : <>
+            <p className={styles.helpText}>{isActive ? 'Tu interpretación todavía no está preparada. Podés generarla ahora.' : 'La carta se prepara al activar tu suscripción.'}</p>
+            {isActive && <GenerateReportsButton />}
+          </>}
+        </section>
+
+        <section className={styles.card} id="revolucion-solar">
+          <h2 className={styles.sectionTitle}>Mi revolución solar</h2>
+          <p className={styles.helpText}>Tu lectura anual se prepara hasta 30 días antes del retorno exacto del Sol a su posición natal, cerca de tu cumpleaños. Se calcula para la ubicación declarada en ese momento.</p>
+          {!profile.residence && <p className={styles.helpText}>Guardá tu residencia y, si vas a viajar cerca de tu cumpleaños, informá el viaje antes de preparar el informe.</p>}
+          {reports?.length ? reports.map(report => <details key={report.id} className={styles.reportDetails}>
+            <summary>Ciclo {report.year}–{report.year + 1} · {report.status === 'ready' ? report.location?.label ?? 'Informe anual' : report.status === 'processing' ? 'Preparando' : 'Pendiente de completar'}</summary>
+            {report.return_at && <p className={styles.helpText}>Retorno solar: {new Intl.DateTimeFormat('es-AR', { dateStyle:'long', timeStyle:'short', timeZone:report.location?.timezone ?? timezone }).format(new Date(report.return_at))} ({report.location?.timezone ?? timezone}).</p>}
+            {report.location_basis === 'residence' && <p className={styles.helpText}>Ubicación de referencia: residencia declarada al calcular el informe. Si el retorno ya ocurrió, comprobá que coincide con el lugar donde estabas.</p>}
+            {report.status === 'ready' && <><AstroChart data={report.chart} title={`Revolución solar ${report.year}`} /><div className={styles.reading}><ReactMarkdown>{report.interpretation}</ReactMarkdown></div></>}
+          </details>) : <p className={styles.helpText}>Tus informes anuales aparecerán acá y quedarán guardados por ciclo.</p>}
+          {isActive && profile.residence && <GenerateReportsButton />}
+          <p className={styles.helpText}>Si cambiás la ubicación prevista, se preparará una nueva versión. Las anteriores conservan su lugar de cálculo.</p>
+        </section>
 
         {/* Birth data */}
         <div className={styles.card}>
