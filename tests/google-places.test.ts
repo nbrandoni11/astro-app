@@ -54,3 +54,12 @@ test('invalid public lookup never reaches Google and no key is returned to clien
  const r=await POST(new Request('https://example.com/api/places/resolve',{method:'POST',body:JSON.stringify({place_id:placeId,session,selection_token:'bad'})}));
  assert.equal(r.status,400);assert.equal(requests.length,0);assert.ok(!(await r.text()).includes(process.env.GOOGLE_MAPS_API_KEY!));
 });
+test('provider rejection diagnostics redact the API key',async()=>{
+ const {g}=await setup();const oldError=console.error;const messages:string[]=[];
+ console.error=(...args:unknown[])=>{messages.push(args.map(String).join(' '));};
+ globalThis.fetch=async()=>Response.json({error:{status:'PERMISSION_DENIED',message:`Rejected key ${process.env.GOOGLE_MAPS_API_KEY}`,details:[{reason:'API_KEY_SERVICE_BLOCKED'}]}},{status:403});
+ try{await assert.rejects(g.autocomplete('Lugar',session,'client',false));}
+ finally{console.error=oldError;}
+ assert.ok(messages.join('').includes('API_KEY_SERVICE_BLOCKED'));
+ assert.ok(!messages.join('').includes(process.env.GOOGLE_MAPS_API_KEY!));
+});

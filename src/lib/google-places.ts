@@ -5,7 +5,7 @@ import { offsetHours, validateLocation, wallTimeToUtc, type Location } from './l
 export type GoogleLocation = Location & { provider: 'google'; place_id: string; input_label?: string };
 export type PlaceSuggestion = { label: string; place_id: string; selection_token: string };
 type Operation = 'autocomplete' | 'details' | 'timezone';
-const apiKey = () => process.env.GOOGLE_MAPS_API_KEY;
+const apiKey = () => process.env.GOOGLE_MAPS_API_KEY?.trim();
 export const googleConfigured = () => !!apiKey();
 const validId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9_+=\/-]{5,512}$/.test(id);
 export function clientHash(req: Request) {
@@ -110,4 +110,16 @@ export async function resolveBirthProfile<T extends BirthFields>(p:T):Promise<T>
   const wall=`${p.birth_year}-${String(p.birth_month).padStart(2,'0')}-${String(p.birth_day).padStart(2,'0')}T${String(p.birth_hour).padStart(2,'0')}:${String(p.birth_min).padStart(2,'0')}`;
   const instant=wallTimeToUtc(wall,place.timezone);
   return {...p,birth_lat:place.lat,birth_lon:place.lon,birth_tzone:offsetHours(instant,place.timezone)};
+}
+// Administrative connection check: fixed public coordinates, no user data.
+export async function googleConnectionCheck() {
+  const key=apiKey();
+  if(!key)return {configured:false};
+  const keyFormatValid=/^AIza[A-Za-z0-9_-]{35}$/.test(key);
+  if(!keyFormatValid)return {configured:true,keyFormatValid:false};
+  await reserve('timezone','internal');
+  const query=new URLSearchParams({location:'-34.6037,-58.3816',timestamp:String(Math.floor(Date.now()/1000)),key});
+  const res=await fetch(`https://maps.googleapis.com/maps/api/timezone/json?${query}`,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+  const d=await res.json();
+  return {configured:true,keyFormatValid:true,timezone:{http:res.status,status:d.status,message:String(d.errorMessage||d.error_message||d.error?.message||'').split(key).join('[redacted]').slice(0,500)}};
 }
