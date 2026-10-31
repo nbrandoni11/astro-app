@@ -11,6 +11,13 @@ const validId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za
 export function clientHash(req: Request) {
   return createHmac('sha256', process.env.CRON_SECRET || 'no-google-access').update(req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown').digest('hex');
 }
+async function logProviderFailure(res: Response, operation: string) {
+  const data = await res.json().catch(() => null);
+  const details = data?.error?.details as Array<{ reason?: string }> | undefined;
+  const reasons = details?.map(d => d.reason).filter(Boolean).join(',');
+  const safeMessage = String(data?.error?.message || '').split(apiKey() || '__no_key__').join('[redacted]').slice(0, 400);
+  console.error('[places] Provider rejected request', JSON.stringify({ operation, http: res.status, status: data?.error?.status, reasons, message: safeMessage }));
+}
 async function reserve(operation: Operation, client: string) {
   const { data, error } = await supabaseAdmin.rpc('reserve_google_places_request', { operation, client });
   if (error || data !== true) throw new Error('Google no está disponible por el momento. Podés usar la búsqueda de respaldo.');
@@ -36,7 +43,7 @@ export async function autocomplete(input: string, session: string, client: strin
     body:JSON.stringify({input,sessionToken:session,languageCode:'es',regionCode:'ar',...(citiesOnly?{includedPrimaryTypes:['(cities)']}:{})}),
     cache:'no-store', signal:AbortSignal.timeout(8000),
   });
-  if (!res.ok) { console.error('[places] Autocomplete status',res.status); throw new Error('No pudimos consultar Google.'); }
+  if (!res.ok) { await logProviderFailure(res,'autocomplete'); throw new Error('No pudimos consultar Google.'); }
   const data=await res.json();
   return (data.suggestions??[]).flatMap((s: {placePrediction?:{placeId?:string;text?:{text?:string}}})=>{
     const p=s.placePrediction;
@@ -55,7 +62,7 @@ export async function resolveGooglePlace(id: string, session?: string, client = 
   await reserve('details',client); await reserve('timezone',client);
   const params=new URLSearchParams({languageCode:'es',...(session?{sessionToken:session}:{})});
   const res=await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}?${params}`,{headers:{'X-Goog-Api-Key':apiKey()!,'X-Goog-FieldMask':'id,formattedAddress,addressComponents,location'},cache:'no-store',signal:AbortSignal.timeout(8000)});
-  if(!res.ok){console.error('[places] Details status',res.status);throw new Error('No pudimos obtener las coordenadas del lugar.');}
+  if(!res.ok){await logProviderFailure(res,'details');throw new Error('No pudimos obtener las coordenadas del lugar.');}
   const d=await res.json(); const lat=d.location?.latitude,lon=d.location?.longitude;
   if(typeof lat!=='number'||typeof lon!=='number')throw new Error('Ese lugar no tiene coordenadas disponibles.');
   const country=d.addressComponents?.find((p:{types:string[]})=>p.types?.includes('country'))?.longText;
