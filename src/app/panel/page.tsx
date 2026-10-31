@@ -1,3 +1,5 @@
+import DeliverySettings from "@/components/DeliverySettings";
+import { deliveryTimeLabel } from "@/lib/delivery-schedule";
 import Image from "next/image";
 import { subscriptionAccess } from "@/lib/subscription-access";
 import { redirect } from "next/navigation";
@@ -154,16 +156,17 @@ export default async function PanelPage() {
             <span className={styles.nextDeliveryIcon}>☽</span>
 
             <div className={styles.nextDeliveryText}>
-              <p className={styles.nextDeliveryTime}>{isActive?"Cada noche · 22:00":"Envíos en pausa"}</p>
+              <p className={styles.nextDeliveryTime}>{isActive?`${profile.delivery_day === "same_day" ? "El mismo día" : "El día anterior"} · ${deliveryTimeLabel(profile)}`:"Envíos en pausa"}</p>
               <p className={styles.nextDeliveryDesc}>{activeLocation?.label ?? timezone} · hora local</p>
 
               <p className={styles.nextDeliveryDesc}>
-                Recibís la lectura personalizada correspondiente al día siguiente.
+                {profile.delivery_day === "same_day" ? "Recibís la lectura correspondiente al mismo día." : "Recibís la lectura correspondiente al día siguiente."}
               </p>
             </div>
           </div>
         </div>
 
+        <DeliverySettings preferences={{delivery_day:profile.delivery_day,delivery_minute:profile.delivery_minute}} timezone={timezone} active={isActive} />
         {/* Last horoscope */}
         <div className={styles.card}>
           <div className={styles.cardLabel}>Último horóscopo</div>

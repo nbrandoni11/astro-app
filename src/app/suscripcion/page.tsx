@@ -61,7 +61,7 @@ function SuscripcionContent() {
           {/* Headline */}
           <h1 className={styles.title}>
             Tu horóscopo personal,<br />
-            <em>todas las noches.</em>
+            <em>todos los días.</em>
           </h1>
 
           <p className={styles.subtitle}>
@@ -100,7 +100,7 @@ function SuscripcionContent() {
               </span>
               <div className={styles.valueText}>
                 <span className={styles.valueTitle}>Entrega por WhatsApp</span>
-                <span className={styles.valueDesc}>Cada noche, antes de dormir, en tu número registrado. Sin apps extra.</span>
+                <span className={styles.valueDesc}>En tu número registrado, en el horario que elijas. Sin apps extra.</span>
               </div>
             </li>
           </ul>
@@ -122,7 +122,7 @@ function SuscripcionContent() {
               </span>
               <span className={styles.afterPayStep}>
                 <span className={styles.afterPayNum}>3</span>
-                Recibís cada noche a las 22:00 la lectura del día siguiente
+                Por defecto, recibís a las 22:00 la lectura del día siguiente. Podés elegir otro horario desde tu cuenta
               </span>
             </div>
           </div>

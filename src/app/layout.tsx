@@ -18,9 +18,9 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'ID Astral — Tu horóscopo personal cada noche',
+  title: 'ID Astral — Tu horóscopo personal, cada día',
   description:
-    'Recibí todas las noches un horóscopo personalizado basado en tu carta natal y los tránsitos del día, directo en WhatsApp.',
+    'Tu horóscopo personal: una herramienta para cada día. Precisión astrológica e interpretación personalizada en WhatsApp, en el horario que elijas.',
   icons: { icon: '/id-astral-favicon.png', shortcut: '/id-astral-favicon.png', apple: '/id-astral-mark.png' },
   keywords: 'astrología, horóscopo, carta natal, personalizado, WhatsApp',
 };

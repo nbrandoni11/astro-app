@@ -1,3 +1,5 @@
+import { readingIsDue } from "@/lib/delivery-schedule";
+import { deliveryTimezone } from "@/lib/location-time";
 import { DAILY_HOROSCOPE_1_CONTENT_SID, DAILY_HOROSCOPE_2_CONTENT_SID, sendTwilioTemplate } from "@/lib/whatsapp-templates";
 import { subscriptionAccess } from "@/lib/subscription-access";
 import { fitThreeSections, horoscopeDateLabel, smartTrim } from "@/lib/whatsapp-content";
@@ -204,6 +206,14 @@ export async function GET(req: Request) {
                 continue;
             }
 
+            if (!horoscopeId) {
+                const {data:trips,error:tripError}=await supabaseAdmin.from("user_trips").select("*").eq("user_id",user.id).is("cancelled_at",null);
+                const zone=deliveryTimezone(user.residence,trips??[],user.timezone);
+                if(tripError || !readingIsDue(user,item.horoscope_date,zone)) {
+                    await supabaseAdmin.from("daily_horoscopes").update({send_status:"pending"}).eq("id",item.id).eq("send_status","processing");
+                    continue;
+                }
+            }
             if(!subscriptionAccess(user).allowed) {
                 await supabaseAdmin.from("daily_horoscopes").update({send_status:"error",send_error:"Suscripción en pausa; envío bloqueado"}).eq("id",item.id);
                 continue;

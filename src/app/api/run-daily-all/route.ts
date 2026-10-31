@@ -1,3 +1,5 @@
+import { scheduledReadingDate } from "@/lib/delivery-schedule";
+import { ensurePublicReading } from "@/lib/public-reading";
 import { subscriptionAccess } from "@/lib/subscription-access";
 import { NextRequest, NextResponse } from "next/server";
 import { deliveryTimezone, localParts } from "@/lib/location-time";
@@ -53,6 +55,7 @@ async function runDailyAll(req: NextRequest) {
         }
 
         const baseUrl = getBaseUrl(req);
+        try { await ensurePublicReading(); } catch(e) { console.error("[public-reading]",e instanceof Error?e.message:"generation failed"); }
         const generationResults = [];
 
         // ─────────────────────────────────────────────
@@ -73,7 +76,8 @@ async function runDailyAll(req: NextRequest) {
             const { data: trips, error: tripsError } = await supabaseAdmin.from("user_trips").select("*").eq("user_id", user.id).is("cancelled_at", null);
             if (tripsError) { generationResults.push({ userId: user.id, ok: false, error: "Error consultando viajes" }); continue; }
             const timezone = deliveryTimezone(user.residence, trips ?? [], user.timezone);
-            if (localParts(new Date(), timezone).hour !== 22) continue;
+            const targetDate=scheduledReadingDate(user,timezone);
+            if (!targetDate) continue;
 
             const normalizedPhone = normalizePhone(user.phone_whatsapp);
 
@@ -110,7 +114,7 @@ async function runDailyAll(req: NextRequest) {
                         Authorization: `Bearer ${process.env.CRON_SECRET}`,
                     },
                     body: JSON.stringify({
-                        userId: user.id,
+                        userId: user.id, targetDate,
                     }),
                     cache: "no-store",
                 });

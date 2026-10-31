@@ -45,7 +45,7 @@ function GraciasContent() {
           if (response.ok && data.subscriptionStatus === "active") {
             setState("active");
             setMessage(
-              "Tu pago está confirmado. Estamos preparando tu lectura para enviártela ahora. Después, cada noche a las 22:00 vas a recibir la lectura correspondiente al día siguiente."
+              "Tu pago está confirmado. Estamos preparando tu lectura para enviártela ahora. Después se usará tu horario de entrega. El valor inicial es a las 22 del día anterior y podés cambiarlo desde tu cuenta."
             );
             return;
           }
@@ -151,7 +151,7 @@ function GraciasContent() {
             <span className={styles.statusIcon}>☽</span>
             <div className={styles.statusText}>
               <span className={styles.statusLabel}>Envío diario</span>
-              <span className={styles.statusValue}>22:00</span>
+              <span className={styles.statusValue}>22:00 por defecto</span>
             </div>
           </div>
 
@@ -159,7 +159,7 @@ function GraciasContent() {
             <span className={styles.statusIcon}>→</span>
             <div className={styles.statusText}>
               <span className={styles.statusLabel}>Lectura</span>
-              <span className={styles.statusValue}>Día siguiente</span>
+              <span className={styles.statusValue}>Configurable en Mi cuenta</span>
             </div>
           </div>
         </div>

@@ -227,7 +227,7 @@ export default function OnboardingPage() {
             <div className={styles.cardHeader}>
               <h1 className={styles.cardTitle}>Tu número de WhatsApp</h1>
               <p className={styles.cardDesc}>
-                Ahí vas a recibir tu horóscopo personalizado cada noche.
+                Ahí vas a recibir tu lectura personal. Después podés elegir el horario desde tu cuenta.
               </p>
             </div>
 

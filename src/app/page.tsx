@@ -1,3 +1,4 @@
+import PublicDailyReading from "@/components/PublicDailyReading";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./landing.module.css";
@@ -23,7 +24,7 @@ function PlanetaryVisual() {
       <div className={styles.sun} />
       {[0,1,2,3,4].map(i => <div key={i} className={`${styles.orbit} ${styles[`orbit${i}`]}`}><div className={styles.revolution}><span className={styles.planet} /></div></div>)}
     </div>
-    <figcaption className={styles.orbitCaption}>EL CIELO SE MUEVE. TU MAPA PERMANECE.</figcaption>
+    <figcaption className={styles.orbitCaption}>EL CIELO DE CADA DÍA, LEÍDO PARA VOS.</figcaption>
   </figure>;
 }
 
@@ -65,11 +66,9 @@ export default function LandingPage() {
               <em className={styles.heroEmphasis}>personal.</em>
             </h1>
 
-            <p className={styles.heroSub}>
-              Cada noche recibís una lectura privada basada en tu carta natal
-              y los tránsitos astrológicos del día, interpretada
-              exclusivamente para vos.
-            </p>
+            <p className={styles.heroKicker}>Una herramienta para cada día.</p>
+            <p className={styles.heroSub}>Una lectura basada en tu fecha, hora y lugar de nacimiento para ayudarte a ordenar prioridades, reflexionar sobre lo que estás viviendo y tomar decisiones con más perspectiva.</p>
+            <p className={styles.heroPromise}>Precisión astrológica. Interpretación personalizada.<br />Cada noche, en tu WhatsApp. O en el horario que elijas.</p>
 
             <div className={styles.heroCtas}>
               <Link
@@ -80,7 +79,7 @@ export default function LandingPage() {
                 <span className={styles.ctaWhatsapp}>
                   <WhatsAppIcon />
                 </span>
-                Quiero mi horóscopo
+                Quiero mi lectura personal
               </Link>
 
               <a
@@ -112,27 +111,24 @@ export default function LandingPage() {
         <div className={styles.precisionInner}>
           <div className={styles.precisionText}>
             <p className={`label-upper ${styles.sectionLabel}`}>
-              Precisión antes que generalidades
+              Precisión astrológica
             </p>
 
             <h2 className={styles.precisionTitle}>
-              Tu lectura parte de tu mapa,
+              Precisión en cada cálculo.
               <br />
-              <em>no de tu signo solar.</em>
+              <em>Una lectura hecha para vos.</em>
             </h2>
 
             <p className={styles.precisionBody}>
-              Calculamos tu carta natal a partir de tu fecha, hora y lugar de
-              nacimiento usando efemérides astronómicas de referencia
-              internacional. Cada día interpretamos los tránsitos planetarios
-              sobre esa carta, no un horóscopo genérico.
+              Calculamos las posiciones planetarias para tu fecha, hora y lugar de nacimiento, teniendo en cuenta coordenadas y zona horaria. Cada día analizamos sus relaciones con los movimientos del cielo y elaboramos tu lectura personal.
             </p>
           </div>
 
           <ul className={styles.precisionList}>
             <li className={styles.precisionItem}>
               <span className={styles.precisionDot} />
-              Posiciones planetarias calculadas con efemérides profesionales
+              Posiciones planetarias calculadas con tus datos de nacimiento
             </li>
 
             <li className={styles.precisionItem}>
@@ -142,7 +138,7 @@ export default function LandingPage() {
 
             <li className={styles.precisionItem}>
               <span className={styles.precisionDot} />
-              Sin horóscopos genéricos por signo solar
+              Una herramienta para reflexionar y decidir con más perspectiva
             </li>
           </ul>
         </div>
@@ -157,9 +153,9 @@ export default function LandingPage() {
           <p className={`label-upper ${styles.sectionLabel}`}>El proceso</p>
 
           <h2 className={`heading-lg ${styles.sectionTitle}`}>
-            Una lectura diaria construida
+            Una lectura diaria basada
             <br />
-            <em>sobre tu mapa natal</em>
+            <em>sobre tu carta natal</em>
           </h2>
 
           <div className={styles.timeline}>
@@ -177,8 +173,7 @@ export default function LandingPage() {
                 </h3>
 
                 <p className={styles.timelineDesc}>
-                  Fecha, hora y lugar. Con eso construimos el mapa que te
-                  pertenece solo a vos.
+                  Fecha, hora y lugar. Es el punto de partida para calcular tu carta natal y personalizar la lectura.
                 </p>
               </div>
             </div>
@@ -193,13 +188,11 @@ export default function LandingPage() {
                 <p className={styles.timelineLabel}>Luego</p>
 
                 <h3 className={styles.timelineTitle}>
-                  Calculamos tu mapa personal
+                  Calculamos tu carta natal
                 </h3>
 
                 <p className={styles.timelineDesc}>
-                  Tu carta natal queda guardada. Cada día cruzamos los
-                  tránsitos actuales contra ese mapa para encontrar lo que es
-                  relevante para vos.
+                  Tu carta natal queda disponible en tu cuenta. Cada día analizamos los tránsitos planetarios en relación con ella.
                 </p>
               </div>
             </div>
@@ -212,15 +205,14 @@ export default function LandingPage() {
               </div>
 
               <div className={styles.timelineContent}>
-                <p className={styles.timelineLabel}>Cada noche</p>
+                <p className={styles.timelineLabel}>A tu horario</p>
 
                 <h3 className={styles.timelineTitle}>
                   Recibís tu lectura por WhatsApp
                 </h3>
 
                 <p className={styles.timelineDesc}>
-                  Antes de dormir, un mensaje privado con lo que el cielo tiene
-                  para vos al día siguiente.
+                  Por defecto, a las 22 del día anterior. Desde tu cuenta podés elegir el mismo día o el anterior y la hora de entrega.
                 </p>
               </div>
             </div>
@@ -228,58 +220,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Preview de lectura ──────────────────────────────────────────── */}
-      <section className={`${styles.previewSection} page-content`}>
+      <section className={`${styles.previewSection} page-content`} id="lectura-de-hoy">
         <div className={styles.sectionInner}>
-          <p className={`label-upper ${styles.sectionLabel}`}>
-            Tu lectura, cada noche
-          </p>
-
-          <h2 className={`heading-lg ${styles.sectionTitle}`}>
-            Así se ve por dentro
-          </h2>
-
-          <div className={styles.readingCard}>
-            <div className={styles.readingHeader}>
-              <div className={styles.readingDate}>
-                <span className={styles.readingDateLabel}>Tu lectura</span>
-                <span className={styles.readingDateValue}>28 de mayo</span>
-              </div>
-
-              <span className={styles.readingBadge}>Ejemplo de lectura</span>
-            </div>
-
-            <div className={styles.readingBody}>
-              <p className={styles.readingIntro}>
-                Mercurio en trígono con tu Mercurio natal activa tu claridad
-                mental. La comunicación fluye con facilidad hoy — es un buen
-                momento para conversaciones que venías postergando.
-              </p>
-            </div>
-
-            <div className={styles.readingGrid}>
-              {[
-                ['◐','Panorama general','Lo más relevante del día en todos los ámbitos.'],
-                ['♄','Trabajo y dinero','Oportunidades y foco profesional.'],
-                ['♀','Relaciones','Vínculos y conexiones del día.'],
-                ['☽','Energía interna','Tu estado emocional e intuición.'],
-              ].map(([icon,title,description]) => <div key={title} className={styles.readingSection}>
-                <div className={styles.readingSectionIcon} aria-hidden="true">{icon}</div>
-                <div className={styles.readingSectionName}>{title}</div>
-                <p className={styles.readingSectionText}>{description}</p>
-              </div>)}
-            </div>
-
-            <div className={styles.readingFooter}>
-              <span className={styles.readingFooterLabel}>
-                Base astrológica
-              </span>
-
-              <span className={styles.readingFooterValue}>
-                ☿ trígono ☿ natal · ♃ sextil ASC · ☽ en Casa 4
-              </span>
-            </div>
-          </div>
+          <p className={`label-upper ${styles.sectionLabel}`}>El horóscopo de hoy</p>
+          <h2 className={`heading-lg ${styles.sectionTitle}`}>El cielo de hoy en Argentina</h2>
+          <PublicDailyReading />
         </div>
       </section>
 
@@ -293,8 +238,7 @@ export default function LandingPage() {
           </h2>
 
           <p className={styles.ctaSectionSub}>
-            Empezá a recibir tu lectura personal cada noche, basada en tu mapa
-            natal y los tránsitos del día.
+            Recibí tu lectura personal basada en tu carta natal y los tránsitos del día. Elegí el horario que mejor acompañe tu rutina.
           </p>
 
           <Link
@@ -305,7 +249,7 @@ export default function LandingPage() {
             <span className={styles.ctaWhatsapp}>
               <WhatsAppIcon />
             </span>
-            Quiero mi horóscopo
+            Quiero mi lectura personal
           </Link>
 
           <div className={styles.trustGrid}>
@@ -348,7 +292,7 @@ export default function LandingPage() {
 
           <div className={styles.navLinks}><Link href="/terminos">Términos</Link><Link href="/privacidad">Privacidad</Link><a href="mailto:nbrandoni.exe@gmail.com">Contacto</a></div>
           <p className={styles.footerText}>
-            © 2026 — Todos los derechos reservados
+            © 2026 ID Astral. La astrología es interpretativa y no garantiza acontecimientos.
           </p>
         </div>
       </footer>

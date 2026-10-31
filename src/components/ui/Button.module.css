@@ -76,3 +76,4 @@
 .fullWidth {
   width: 100%;
 }
+.button{border-radius:999px}.primary{color:#111b2d;border-color:#d9ba83;box-shadow:none}.primary:hover:not(:disabled){background-color:#efd4a6;box-shadow:none}.outline{border-color:#d9ba8355}.outline:hover:not(:disabled){border-color:#d9ba83}
