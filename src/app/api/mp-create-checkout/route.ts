@@ -1,4 +1,7 @@
-"use server";
+import { validCheckoutToken } from "@/lib/checkout-token";
+import { createClient } from "@/lib/supabase-server";
+import { subscriptionAccess } from "@/lib/subscription-access";
+
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -7,7 +10,7 @@ import { getMercadoPagoSubscription } from "@/lib/mercadopago-subscription";
 const MONTHLY_PRICE_ARS = 4990;
 
 function normalizePhone(value: string | null | undefined) {
-  return String(value || "").replace(/\\D/g, "");
+  return String(value || "").replace(/\D/g, "");
 }
 
 export async function POST(req: Request) {
@@ -24,10 +27,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const client = await createClient();
+    const {data:{user: sessionUser}}=await client.auth.getUser();
+    if(sessionUser?.id!==userId && !validCheckoutToken(body.checkoutToken,userId,email)) return NextResponse.json({ok:false,error:"Ingresá a tu cuenta para continuar."},{status:401});
+    if(req.headers.get('origin') && req.headers.get('origin')!==new URL(req.url).origin)return NextResponse.json({ok:false,error:'Origen inválido'},{status:403});
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("users")
       .select(
-        "id,email,phone_whatsapp,subscription_status,mercadopago_subscription_id,mercadopago_subscription_init_point"
+        "*"
       )
       .eq("auth_user_id", userId)
       .single();
@@ -46,7 +53,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (profile.subscription_status === "active") {
+    if (subscriptionAccess(profile).allowed && !subscriptionAccess(profile).inGrace) {
       return NextResponse.json(
         { ok: false, alreadyActive: true, error: "La suscripción ya está activa" },
         { status: 409 }
@@ -103,22 +110,10 @@ export async function POST(req: Request) {
           });
         }
 
-        if (existingSubscription.status === "authorized") {
-          await supabaseAdmin
-            .from("users")
-            .update({
-              subscription_status: "active",
-              mercadopago_subscription_status: "authorized",
-              subscription_next_payment_at:
-                existingSubscription.next_payment_date ?? null,
-            })
-            .eq("id", profile.id);
-
-          return NextResponse.json(
-            { ok: false, alreadyActive: true, error: "La suscripción ya está activa" },
-            { status: 409 }
-          );
+        if (["authorized","paused"].includes(existingSubscription.status||"")) {
+          return NextResponse.json({ok:true,subscriptionId:existingSubscription.id,init_point:"https://www.mercadopago.com.ar/subscriptions",manageExisting:true});
         }
+
       } catch (error) {
         console.error(
           "[mp-create-checkout] No se pudo reutilizar la suscripción anterior:",
@@ -131,7 +126,7 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_APP_URL || "https://idastral.com";
 
     const backUrl =
-      `${appUrl}/gracias?userId=${encodeURIComponent(userId)}`;
+      `${appUrl}/gracias?userId=${encodeURIComponent(userId)}${body.checkoutToken ? "&checkoutToken="+encodeURIComponent(body.checkoutToken) : ""}`;
 
     const response = await fetch(
       "https://api.mercadopago.com/preapproval",

@@ -114,7 +114,7 @@ export default function OnboardingPage() {
         setIsSubmitting(false);
         return;
       }
-      router.push(`/suscripcion?userId=${data.userId}&email=${encodeURIComponent(data.email)}`);
+      router.push(`/suscripcion?userId=${data.userId}&email=${encodeURIComponent(data.email)}&checkoutToken=${encodeURIComponent(data.checkoutToken)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado');
       setIsSubmitting(false);

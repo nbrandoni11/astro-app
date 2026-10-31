@@ -1,3 +1,4 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { NextRequest, NextResponse } from "next/server";
 import { deliveryTimezone, localParts } from "@/lib/location-time";
 import { ensureAnnualReports } from "@/lib/annual-reports";
@@ -32,6 +33,8 @@ async function runDailyAll(req: NextRequest) {
     }
 
     try {
+        const {error:billingError}=await supabaseAdmin.rpc('expire_subscription_access');
+        if(billingError)throw billingError;
         const { data: users, error } = await supabaseAdmin
             .from("users")
             .select("*")
@@ -66,6 +69,7 @@ async function runDailyAll(req: NextRequest) {
         const reportsDue = [];
 
         for (const user of orderedUsers) {
+            if(!subscriptionAccess(user).allowed)continue;
             const { data: trips, error: tripsError } = await supabaseAdmin.from("user_trips").select("*").eq("user_id", user.id).is("cancelled_at", null);
             if (tripsError) { generationResults.push({ userId: user.id, ok: false, error: "Error consultando viajes" }); continue; }
             const timezone = deliveryTimezone(user.residence, trips ?? [], user.timezone);

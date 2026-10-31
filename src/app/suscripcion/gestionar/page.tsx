@@ -1,3 +1,4 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { Button } from "@/components/ui/Button";
@@ -32,7 +33,7 @@ export default async function ManageSubscriptionPage() {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "subscription_status,mercadopago_subscription_status,subscription_next_payment_at"
+      "*"
     )
     .eq("auth_user_id", user.id)
     .single();
@@ -41,7 +42,8 @@ export default async function ManageSubscriptionPage() {
     redirect("/login");
   }
 
-  const isActive = profile.subscription_status === "active";
+  const access=subscriptionAccess(profile);
+  const isActive=access.allowed;
   const subscribeHref = `/suscripcion?userId=${encodeURIComponent(
     user.id
   )}&email=${encodeURIComponent(user.email || "")}`;
@@ -57,6 +59,7 @@ export default async function ManageSubscriptionPage() {
           <h1 className={styles.pageTitle}>Suscripción</h1>
         </header>
 
+        <div className={styles.card}><p>El cobro es mensual. Si un pago no se acredita, tenés 10 días desde su vencimiento para regularizarlo. Después se pausan las nuevas lecturas y WhatsApp, pero conservás el acceso a tu dashboard y a tus informes anteriores. Al confirmarse el pago, preparamos tu lectura y la enviamos en ese momento.</p></div>
         <div className={styles.card}>
           <div className={styles.cardTop}>
             <div className={styles.cardLabel}>Estado actual</div>
@@ -74,7 +77,7 @@ export default async function ManageSubscriptionPage() {
               }
             >
               {isActive && <span className={styles.activeDot} />}
-              {isActive ? "Activa" : "Inactiva"}
+              {isActive ? access.inGrace?"Pago pendiente · 10 días de gracia":"Activa" : "En pausa"}
             </span>
           </div>
 

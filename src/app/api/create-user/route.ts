@@ -1,3 +1,4 @@
+import { checkoutToken } from "@/lib/checkout-token";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { submittedLocation, storedLocation } from "@/lib/google-places";
@@ -276,6 +277,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: true,
         userId: updatedProfile.auth_user_id,
+        checkoutToken: checkoutToken(updatedProfile.auth_user_id, updatedProfile.email),
         email: updatedProfile.email,
         reused: true,
       });
@@ -347,6 +349,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       userId: newProfile.auth_user_id,
+      checkoutToken: checkoutToken(newProfile.auth_user_id, newProfile.email),
       email: newProfile.email,
       reused: false,
     });

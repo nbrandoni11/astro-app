@@ -11,6 +11,7 @@ function SuscripcionContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("userId");
   const email = searchParams.get("email");
+  const checkoutToken = searchParams.get("checkoutToken");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +26,7 @@ function SuscripcionContent() {
       const res = await fetch("/api/mp-create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, email }),
+        body: JSON.stringify({ userId, email, checkoutToken }),
       });
       const data = await res.json();
       if (!data.ok) {

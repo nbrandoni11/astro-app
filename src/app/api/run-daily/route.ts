@@ -1,9 +1,12 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { deliveryTimezone, effectiveLocation, localDate, wallTimeToUtc, localParts, offsetHours } from "@/lib/location-time";
 import { resolveBirthProfile, resolveSavedLocation, storedLocation } from "@/lib/google-places";
 import { assertChart } from "@/lib/chart-data";
 import { getNatalChart, getDailyTransits } from "@/lib/astro-engine";
+
+export const maxDuration=300;
 
 type HoroscopeAIResponse = {
     full?: string;
@@ -43,12 +46,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        if(!subscriptionAccess(rawUser).allowed)return NextResponse.json({ok:false,error:"Suscripción en pausa"},{status:403});
         const user = await resolveBirthProfile(rawUser);
         const now = new Date();
         const { data: trips, error: tripsError } = await supabaseAdmin.from("user_trips").select("*").eq("user_id", user.id).is("cancelled_at", null);
         if (tripsError) throw new Error("No se pudieron consultar los viajes");
         const timezone = deliveryTimezone(user.residence, trips ?? [], user.timezone, now);
-        const formattedDate = localDate(now, timezone, 1);
+        const today = localDate(now,timezone,0);
+        const tomorrow = localDate(now,timezone,1);
+        if(body.targetDate && ![today,tomorrow].includes(body.targetDate))return NextResponse.json({error:"Fecha fuera de rango"},{status:400});
+        const formattedDate = body.targetDate || tomorrow;
         const [targetYear, targetMonth, targetDay] = formattedDate.split("-").map(Number);
         const { data: existingHoroscopes, error: existingError } =
             await supabaseAdmin
@@ -56,6 +63,7 @@ export async function POST(req: NextRequest) {
                 .select("*")
                 .eq("user_id", user.id)
                 .eq("horoscope_date", formattedDate)
+                .is("superseded_at",null)
                 .limit(1);
 
         if (existingError) {
@@ -513,6 +521,8 @@ ${JSON.stringify(transits)}
         // GUARDAR EN SUPABASE
         // ─────────────────────────────────────────────
 
+        const {data:currentAccess}=await supabaseAdmin.from("users").select("subscription_status,subscription_paid_until,subscription_grace_until").eq("id",user.id).single();
+        if(!currentAccess || !subscriptionAccess(currentAccess).allowed)return NextResponse.json({error:"Suscripción en pausa"},{status:403});
         const { error: insertError } = await supabaseAdmin
             .from("daily_horoscopes")
             .insert({
@@ -527,6 +537,7 @@ ${JSON.stringify(transits)}
                 send_status: "pending",
             });
 
+        if (insertError?.code === "23505") return NextResponse.json({ok:true,reused:true,date:formattedDate});
         if (insertError) {
             return NextResponse.json({
                 ok: false,

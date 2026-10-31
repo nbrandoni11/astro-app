@@ -10,6 +10,7 @@ type ConfirmationState = "checking" | "active" | "pending" | "error";
 function GraciasContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("userId");
+  const checkoutToken = searchParams.get("checkoutToken");
 
   const [state, setState] = useState<ConfirmationState>("checking");
   const [message, setMessage] = useState(
@@ -33,7 +34,7 @@ function GraciasContent() {
           const response = await fetch("/api/mp-confirm-subscription", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId }),
+            body: JSON.stringify({ userId, checkoutToken }),
             cache: "no-store",
           });
 
@@ -44,7 +45,7 @@ function GraciasContent() {
           if (response.ok && data.subscriptionStatus === "active") {
             setState("active");
             setMessage(
-              "Tu suscripción está activa. Cada noche a las 22:00 vas a recibir la lectura correspondiente al día siguiente."
+              "Tu pago está confirmado. Estamos preparando tu lectura para enviártela ahora. Después, cada noche a las 22:00 vas a recibir la lectura correspondiente al día siguiente."
             );
             return;
           }
@@ -75,7 +76,7 @@ function GraciasContent() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, checkoutToken]);
 
   const isActive = state === "active";
   const isChecking = state === "checking";

@@ -1,8 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { after, NextResponse } from "next/server";
+import { processBillingDeliveries } from "@/lib/billing-delivery";
+export const maxDuration = 300;
 import {
   syncMercadoPagoAuthorizedPaymentById,
+  syncMercadoPagoPaymentById,
   syncMercadoPagoSubscriptionById,
 } from "@/lib/mercadopago-subscription";
 
@@ -123,57 +125,6 @@ export async function GET() {
   });
 }
 
-async function handlePayment(paymentId: string) {
-  const response = await fetch(
-    `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  const payment = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      payment?.message || "Error consultando el pago en Mercado Pago"
-    );
-  }
-
-  const userId =
-    payment.external_reference ||
-    payment.metadata?.userId ||
-    payment.metadata?.user_id;
-
-  if (!userId) {
-    return { ignored: true, reason: "payment_without_user_reference" };
-  }
-
-  if (payment.status === "approved") {
-    const { error } = await supabaseAdmin
-      .from("users")
-      .update({
-        subscription_status: "active",
-        mercadopago_subscription_status: "authorized",
-        last_payment_at: new Date().toISOString(),
-        mercadopago_payment_id: String(paymentId),
-      })
-      .eq("auth_user_id", String(userId));
-
-    if (error) {
-      throw new Error("Error registrando el pago aprobado");
-    }
-  }
-
-  return {
-    paymentId,
-    paymentStatus: payment.status,
-    userId: String(userId),
-  };
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -212,6 +163,7 @@ export async function POST(req: Request) {
     if (type === "subscription_preapproval") {
       const result = await syncMercadoPagoSubscriptionById(String(resourceId));
 
+      after(async()=>{ await processBillingDeliveries(); });
       return NextResponse.json({
         ok: true,
         type,
@@ -225,6 +177,7 @@ export async function POST(req: Request) {
         String(resourceId)
       );
 
+      after(async()=>{ await processBillingDeliveries(); });
       return NextResponse.json({
         ok: true,
         type,
@@ -234,8 +187,9 @@ export async function POST(req: Request) {
     }
 
     if (type === "payment") {
-      const result = await handlePayment(String(resourceId));
+      const result = await syncMercadoPagoPaymentById(String(resourceId));
 
+      after(async()=>{ await processBillingDeliveries(); });
       return NextResponse.json({
         ok: true,
         type,

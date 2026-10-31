@@ -1,3 +1,4 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import styles from "./panel.module.css";
@@ -32,13 +33,15 @@ export default async function PanelPage() {
     redirect("/login");
   }
 
-  const isActive = profile.subscription_status === "active";
+  const access=subscriptionAccess(profile);
+  const isActive=access.allowed;
 
   // Fetch the latest horoscope
   const { data: horoscope } = await supabase
     .from("daily_horoscopes")
     .select("*")
     .eq("user_id", profile.id)
+    .is("superseded_at",null)
     .order("horoscope_date", { ascending: false })
     .limit(1)
     .single();
@@ -99,7 +102,7 @@ export default async function PanelPage() {
             {isActive ? (
               <span className={styles.activeBadge}>
                 <span className={styles.activeDot} />
-                Activa
+                {access.inGrace?"Pago pendiente · período de gracia":"Activa"}
               </span>
             ) : (
               <span
@@ -110,7 +113,7 @@ export default async function PanelPage() {
                   borderColor: "rgba(239, 68, 68, 0.2)",
                 }}
               >
-                Inactiva
+                En pausa
               </span>
             )}
           </div>
@@ -122,7 +125,7 @@ export default async function PanelPage() {
                 className={`${styles.rowValue} ${isActive ? styles.rowSuccess : ""
                   }`}
               >
-                {isActive ? "Activa" : "Inactiva"}
+                {isActive ? access.inGrace?"Pago pendiente":"Activa" : "En pausa"}
               </span>
             </div>
 
@@ -140,6 +143,8 @@ export default async function PanelPage() {
           </div>
         </div>
 
+        {access.inGrace && <div className={styles.card}><p>Tu pago mensual está pendiente. Conservás tus lecturas hasta el {new Date(profile.subscription_grace_until).toLocaleDateString('es-AR')}. Si el pago no se confirma, la suscripción se pausa.</p><Button href="/suscripcion/gestionar">Regularizar pago</Button></div>}
+        {!isActive && <div className={styles.card}><p>Tu suscripción está en pausa. Podés consultar tu dashboard y los informes anteriores. Las nuevas lecturas y los envíos por WhatsApp se reanudan al confirmarse el pago; prepararemos una lectura para enviártela en ese momento.</p><Button href="/suscripcion/gestionar">Reactivar suscripción</Button></div>}
         {/* Next delivery */}
         <div className={styles.card}>
           <div className={styles.cardLabel}>Próximo envío</div>
@@ -148,7 +153,7 @@ export default async function PanelPage() {
             <span className={styles.nextDeliveryIcon}>☽</span>
 
             <div className={styles.nextDeliveryText}>
-              <p className={styles.nextDeliveryTime}>Cada noche · 22:00</p>
+              <p className={styles.nextDeliveryTime}>{isActive?"Cada noche · 22:00":"Envíos en pausa"}</p>
               <p className={styles.nextDeliveryDesc}>{activeLocation?.label ?? timezone} · hora local</p>
 
               <p className={styles.nextDeliveryDesc}>

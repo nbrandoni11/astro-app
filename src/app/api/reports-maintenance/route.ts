@@ -1,3 +1,4 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { ensureAnnualReports } from '@/lib/annual-reports';
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
     const { userId } = await req.json();
     if (!userId || typeof userId !== 'string') return NextResponse.json({error:'userId required'},{status:400});
     const { data: p } = await supabaseAdmin.from('users').select('*').eq('id',userId).eq('subscription_status','active').single();
-    if (!p) return NextResponse.json({error:'Active profile not found'},{status:404});
+    if (!p || !subscriptionAccess(p).allowed) return NextResponse.json({error:'Active profile not found'},{status:404});
     const { data: trips, error } = await supabaseAdmin.from('user_trips').select('*').eq('user_id',p.id).is('cancelled_at',null);
     if(error) throw error;
     await ensureAnnualReports(p,trips??[]);

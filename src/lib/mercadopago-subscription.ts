@@ -1,3 +1,4 @@
+import { nextMonthlyDate } from "./subscription-access";
 import { resolveBirthProfile } from "./google-places";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { generateNatalChart } from "@/lib/generate-natal-chart";
@@ -9,6 +10,7 @@ export type MercadoPagoSubscription = {
   init_point?: string | null;
   next_payment_date?: string | null;
   payer_email?: string | null;
+  auto_recurring?: {frequency:number;frequency_type:string;transaction_amount?:number};
 };
 
 async function mpFetch(path: string) {
@@ -49,10 +51,10 @@ async function ensureNatalChart(authUserId: string) {
     throw new Error("No se pudieron obtener los datos natales del usuario");
   }
 
-  const user = await resolveBirthProfile(rawUser);
-  if (user.natal_chart && user.natal_interpretation) {
+  if (rawUser.natal_chart && rawUser.natal_interpretation) {
     return false;
   }
+  const user = await resolveBirthProfile(rawUser);
 
   const { astroData, interpretation } = await generateNatalChart({
     day: user.birth_day,
@@ -81,168 +83,62 @@ async function ensureNatalChart(authUserId: string) {
   return true;
 }
 
-async function sendWelcomeWhatsAppBestEffort(authUserId: string) {
-  try {
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("full_name,phone_whatsapp")
-      .eq("auth_user_id", authUserId)
-      .single();
-
-    if (!user?.phone_whatsapp) return;
-
-    const contentSid =
-      process.env.TWILIO_WELCOME_CONTENT_SID ||
-      "HXba5928745719adf63b13840c57d1050a";
-
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from(
-              `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
-            ).toString("base64"),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          From: process.env.TWILIO_WHATSAPP_NUMBER!,
-          To: `whatsapp:${user.phone_whatsapp}`,
-          ContentSid: contentSid,
-          ContentVariables: JSON.stringify({
-            "1": user.full_name?.split(" ")[0] || "Astral",
-          }),
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error(
-        "[mp-subscription] Welcome WhatsApp failed:",
-        await response.text()
-      );
-    }
-  } catch (error) {
-    console.error("[mp-subscription] Welcome WhatsApp error:", error);
-  }
-}
-
+// Authorization of automatic debits is not proof that an installment was paid.
 export async function syncMercadoPagoSubscriptionById(subscriptionId: string) {
   const subscription = await getMercadoPagoSubscription(subscriptionId);
-  const externalReference = subscription.external_reference
-    ? String(subscription.external_reference)
-    : null;
-
-  let profileQuery = supabaseAdmin
-    .from("users")
-    .select(
-      "id,auth_user_id,subscription_status,mercadopago_subscription_id"
-    );
-
-  if (externalReference) {
-    profileQuery = profileQuery.eq("auth_user_id", externalReference);
-  } else {
-    profileQuery = profileQuery.eq(
-      "mercadopago_subscription_id",
-      subscription.id
-    );
+  const {data: profile,error}=await supabaseAdmin.from("users").select("*").eq("mercadopago_subscription_id",subscription.id).maybeSingle();
+  if(error || !profile || String(subscription.external_reference)!==profile.auth_user_id) throw new Error("Suscripción no vinculada al perfil");
+  const mpStatus=subscription.status || "unknown";
+  // Never extend local paid access merely because next_payment_date advances.
+  const {error:updateError}=await supabaseAdmin.from("users").update({
+    mercadopago_subscription_status:mpStatus,
+    mercadopago_subscription_init_point:subscription.init_point??null,
+    subscription_next_payment_at:subscription.next_payment_date??null,
+    ...(["cancelled","canceled"].includes(mpStatus)?{subscription_status:"inactive"}:{}),
+  }).eq("id",profile.id).eq("mercadopago_subscription_id",subscription.id);
+  if(updateError) throw updateError;
+  const invoices=await mpFetch(`/authorized_payments/search?preapproval_id=${encodeURIComponent(subscription.id)}&limit=100`);
+  if((invoices.paging?.total??0)>100) throw new Error("Se requiere paginar historial de cobros");
+  for(const invoice of (invoices.results??[]).sort((a:any,b:any)=>Date.parse(a.debit_date)-Date.parse(b.debit_date))) {
+    if(invoice.payment?.status==="approved") await syncMercadoPagoAuthorizedPaymentById(String(invoice.id));
   }
-
-  const { data: profile, error: profileError } =
-    await profileQuery.maybeSingle();
-
-  if (profileError || !profile) {
-    throw new Error("No se encontró el usuario de la suscripción");
-  }
-
-  const wasActive = profile.subscription_status === "active";
-  const mpStatus = subscription.status || "unknown";
-
-  let localStatus = profile.subscription_status;
-  if (mpStatus === "authorized") localStatus = "active";
-  if (
-    mpStatus === "cancelled" ||
-    mpStatus === "canceled" ||
-    mpStatus === "paused"
-  ) {
-    localStatus = "inactive";
-  }
-
-  const { error: updateError } = await supabaseAdmin
-    .from("users")
-    .update({
-      mercadopago_subscription_id: subscription.id,
-      mercadopago_subscription_status: mpStatus,
-      mercadopago_subscription_init_point: subscription.init_point ?? null,
-      subscription_next_payment_at: subscription.next_payment_date ?? null,
-      subscription_status: localStatus,
-    })
-    .eq("id", profile.id);
-
-  if (updateError) {
-    throw new Error("Error actualizando la suscripción");
-  }
-
-  let natalChartGenerated = false;
-
-  if (mpStatus === "authorized" && profile.auth_user_id) {
-    natalChartGenerated = await ensureNatalChart(profile.auth_user_id);
-
-    if (!wasActive) {
-      await sendWelcomeWhatsAppBestEffort(profile.auth_user_id);
-    }
-  }
-
-  return {
-    subscription,
-    authUserId: profile.auth_user_id,
-    subscription_status: localStatus,
-    natalChartGenerated,
-  };
+  const {error:expiryError}=await supabaseAdmin.rpc("expire_subscription_access");
+  if(expiryError)throw expiryError;
+  const {data: updated}=await supabaseAdmin.from("users").select("subscription_status").eq("id",profile.id).single();
+  return {subscription,authUserId:profile.auth_user_id,userId:profile.id,subscription_status:updated?.subscription_status,natalChartGenerated:false};
 }
 
-export async function syncMercadoPagoAuthorizedPaymentById(
-  authorizedPaymentId: string
-) {
-  const invoice = await mpFetch(
-    `/authorized_payments/${encodeURIComponent(authorizedPaymentId)}`
-  );
-
-  const externalReference = invoice.external_reference
-    ? String(invoice.external_reference)
-    : null;
-
-  if (!externalReference) {
-    throw new Error("Factura recurrente sin external_reference");
-  }
-
-  const approved = invoice.payment?.status === "approved";
-  const paymentId = invoice.payment?.id
-    ? String(invoice.payment.id)
-    : null;
-
-  if (approved) {
-    const { error } = await supabaseAdmin
-      .from("users")
-      .update({
-        subscription_status: "active",
-        mercadopago_subscription_status: "authorized",
-        last_payment_at: new Date().toISOString(),
-        mercadopago_payment_id: paymentId,
-      })
-      .eq("auth_user_id", externalReference);
-
-    if (error) {
-      throw new Error("Error registrando el cobro recurrente");
-    }
-  }
-
-  return {
-    externalReference,
-    approved,
-    paymentId,
-    invoice,
-  };
+export async function syncMercadoPagoAuthorizedPaymentById(authorizedPaymentId:string) {
+ const invoice=await mpFetch(`/authorized_payments/${encodeURIComponent(authorizedPaymentId)}`);
+ const subscriptionId=String(invoice.preapproval_id||"");
+ if(!subscriptionId) throw new Error("Factura sin suscripción");
+ const subscription=await getMercadoPagoSubscription(subscriptionId);
+ const {data:profile,error}=await supabaseAdmin.from("users").select("id,auth_user_id,mercadopago_subscription_id").eq("mercadopago_subscription_id",subscriptionId).maybeSingle();
+ if(error||!profile||String(subscription.external_reference)!==profile.auth_user_id) throw new Error("Factura no vinculada al perfil");
+ const paymentId=invoice.payment?.id?String(invoice.payment.id):null;
+ if(!paymentId || invoice.payment.status!=="approved")return {approved:false,paymentId,userId:profile.id};
+ const payment=await mpFetch(`/v1/payments/${encodeURIComponent(paymentId)}`);
+ const amount=Number(invoice.transaction_amount);
+ if(payment.status!=="approved" || payment.currency_id!=="ARS" || invoice.currency_id!=="ARS" || amount<4990 || Number(payment.transaction_amount)!==amount || Number(payment.transaction_amount_refunded??0)>0 || payment.live_mode!==true) {
+   return {approved:false,paymentId,userId:profile.id};
+ }
+ const recurring=subscription.auto_recurring;
+ if(recurring?.frequency!==1 || recurring.frequency_type!=="months")throw new Error("La suscripción no es mensual");
+ const paidAt=new Date(payment.date_approved).toISOString();
+ const debitAt=new Date(invoice.debit_date).toISOString();
+ const periodEnd=nextMonthlyDate(paidAt>debitAt?paidAt:debitAt);
+ const {data,error:saveError}=await supabaseAdmin.rpc("record_subscription_payment",{p_user_id:profile.id,p_subscription_id:subscriptionId,p_payment_id:paymentId,p_invoice_id:String(invoice.id),p_paid_at:paidAt,p_period_end:periodEnd,p_amount:amount});
+ if(saveError)throw saveError;
+ return {approved:true,paymentId,userId:profile.id,result:data};
 }
+
+export async function syncMercadoPagoPaymentById(paymentId:string) {
+ const invoices=await mpFetch(`/authorized_payments/search?payment_id=${encodeURIComponent(paymentId)}`);
+ const matching=(invoices.results??[]).filter((v:any)=>String(v.payment?.id)===paymentId);
+ if(!matching.length)return {approved:false,ignored:true};
+ const results=[];
+ for(const invoice of matching) results.push(await syncMercadoPagoAuthorizedPaymentById(String(invoice.id)));
+ return {approved:results.some(r=>r.approved),results};
+}
+
+export {ensureNatalChart};

@@ -1,3 +1,4 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { NextResponse } from 'next/server';
 import { currentProfile } from '@/lib/current-profile';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
   const p = await currentProfile();
   if (!p) return NextResponse.json({ error:'Ingresá a tu cuenta.' },{ status:401 });
   if (req.headers.get('origin') && req.headers.get('origin') !== new URL(req.url).origin) return NextResponse.json({ error:'Origen inválido.' },{ status:403 });
-  if (p.subscription_status !== 'active') return NextResponse.json({ error:'Necesitás una suscripción activa para generar nuevos informes.' },{ status:403 });
+  if (!subscriptionAccess(p).allowed) return NextResponse.json({ error:'Necesitás una suscripción activa para generar nuevos informes.' },{ status:403 });
   try {
     const { data: trips, error } = await supabaseAdmin.from('user_trips').select('*').eq('user_id',p.id).is('cancelled_at',null);
     if (error) throw error;

@@ -1,6 +1,9 @@
+import { subscriptionAccess } from "@/lib/subscription-access";
 import { fitThreeSections, horoscopeDateLabel, smartTrim } from "@/lib/whatsapp-content";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+
+export const maxDuration=300;
 
 const DAILY_HOROSCOPE_1_CONTENT_SID =
     "HX55f7e09dc29550b27f2a1367613aa740";
@@ -95,15 +98,15 @@ export async function POST(req: Request) {
     try {
         const { data: item, error } = await supabaseAdmin.from("daily_horoscopes")
             .select("id,user_id,horoscope_date,whatsapp_message_1,whatsapp_message_2,twilio_status_1,twilio_status_2")
-            .eq("id", body.horoscopeId).single();
+            .eq("id", body.horoscopeId).is("superseded_at",null).single();
         if (error || !item) return NextResponse.json({ ok: false, error: "Horoscope not found" }, { status: 404 });
         const previousStatus = item[statusColumn];
         if (previousStatus !== "failed" && previousStatus !== "undelivered") {
             return NextResponse.json({ ok: false, error: "Only a failed part can be retried" }, { status: 409 });
         }
         const { data: user } = await supabaseAdmin.from("users")
-            .select("full_name,phone_whatsapp,subscription_status").eq("id", item.user_id).single();
-        if (!user?.phone_whatsapp || user.subscription_status !== "active") {
+            .select("*").eq("id", item.user_id).single();
+        if (!user?.phone_whatsapp || !subscriptionAccess(user).allowed) {
             return NextResponse.json({ ok: false, error: "No active recipient" }, { status: 409 });
         }
         const raw = JSON.parse(part === 1 ? item.whatsapp_message_1 : item.whatsapp_message_2);
@@ -175,13 +178,18 @@ export async function GET(req: Request) {
     }
 
     try {
-        const { data: pending, error } = await supabaseAdmin
+        let pendingQuery = supabaseAdmin
             .from("daily_horoscopes")
             .select(
                 "id, user_id, horoscope_text, horoscope_date, whatsapp_message_1, whatsapp_message_2"
             )
             .eq("send_status", "pending")
+            .is("superseded_at",null)
+            .order("horoscope_date",{ascending:true})
             .limit(10);
+        const horoscopeId=new URL(req.url).searchParams.get("horoscopeId");
+        if(horoscopeId)pendingQuery=pendingQuery.eq("id",horoscopeId);
+        const {data:pending,error}=await pendingQuery;
 
         if (error) {
             return NextResponse.json(
@@ -211,7 +219,7 @@ export async function GET(req: Request) {
             }
             const { data: users, error: userError } = await supabaseAdmin
                 .from("users")
-                .select("id, full_name, phone_whatsapp")
+                .select("*")
                 .eq("id", item.user_id)
                 .limit(1);
 
@@ -230,6 +238,10 @@ export async function GET(req: Request) {
                 continue;
             }
 
+            if(!subscriptionAccess(user).allowed) {
+                await supabaseAdmin.from("daily_horoscopes").update({send_status:"error",send_error:"Suscripción en pausa; envío bloqueado"}).eq("id",item.id);
+                continue;
+            }
             if (!user.phone_whatsapp) {
                 await supabaseAdmin
                     .from("daily_horoscopes")
@@ -421,6 +433,10 @@ export async function GET(req: Request) {
                 // {{4}} = Base astrológica
                 // ─────────────────────────────────────────────
 
+                const {data:freshAccess}=await supabaseAdmin.from("users").select("subscription_status,subscription_paid_until,subscription_grace_until").eq("id",item.user_id).single();
+                if(!freshAccess || !subscriptionAccess(freshAccess).allowed){
+                    await supabaseAdmin.from("daily_horoscopes").update({send_status:"error",send_error:"Suscripción en pausa antes de la segunda parte"}).eq("id",item.id);continue;
+                }
                 const response2 = await sendTwilioTemplate(
                     user.phone_whatsapp,
                     DAILY_HOROSCOPE_2_CONTENT_SID,
