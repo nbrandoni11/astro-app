@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { validateLocation } from "@/lib/location-time";
+import { submittedLocation, storedLocation } from "@/lib/google-places";
+import { offsetHours, wallTimeToUtc } from "@/lib/location-time";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function normalizePhone(value: string | null | undefined) {
@@ -114,8 +115,15 @@ export async function POST(req: Request) {
     }
 
     let residence;
-    try { residence = validateLocation(body.residence); } catch { return NextResponse.json({ ok: false, error: "Seleccioná ciudad y país de residencia." }, { status: 400 }); }
+    try { residence = await submittedLocation(body.residence); } catch { return NextResponse.json({ ok: false, error: "Seleccioná ciudad y país de residencia." }, { status: 400 }); }
 
+    const birthLocation = body.birth_location ? await submittedLocation(body.birth_location) : null;
+    const googleBirth = birthLocation?.provider === 'google' ? birthLocation.place_id : null;
+    let resolvedBirthTzone = birth_tzone;
+    if (birthLocation) {
+      const wall = `${birth_year}-${String(birth_month).padStart(2,'0')}-${String(birth_day).padStart(2,'0')}T${String(birth_hour).padStart(2,'0')}:${String(birth_min).padStart(2,'0')}`;
+      resolvedBirthTzone = offsetHours(wallTimeToUtc(wall,birthLocation.timezone),birthLocation.timezone);
+    }
     const normalizedEmail = String(email).trim().toLowerCase();
 
     // There can be legacy/test duplicate profiles. Prefer an active profile,
@@ -236,13 +244,15 @@ export async function POST(req: Request) {
           birth_year,
           birth_hour,
           birth_min,
-          birth_lat,
-          birth_lon,
-          birth_tzone,
+          birth_lat: googleBirth ? null : birth_lat,
+          birth_lon: googleBirth ? null : birth_lon,
+          birth_tzone: resolvedBirthTzone,
+          birth_google_place_id: googleBirth,
+          natal_chart: null, natal_interpretation: null, natal_chart_generated_at: null,
           timezone: residence.timezone,
-          residence,
+          residence: storedLocation(residence),
           birth_place_input: birth_place_input ?? null,
-          birth_place_resolved: birth_place_resolved ?? null,
+          birth_place_resolved: googleBirth ? (body.birth_location.input_label || birth_place_input) : birth_place_resolved ?? null,
         })
         .eq("id", existingProfile.id)
         .select("auth_user_id, email")
@@ -300,13 +310,15 @@ export async function POST(req: Request) {
           birth_year,
           birth_hour,
           birth_min,
-          birth_lat,
-          birth_lon,
-          birth_tzone,
+          birth_lat: googleBirth ? null : birth_lat,
+          birth_lon: googleBirth ? null : birth_lon,
+          birth_tzone: resolvedBirthTzone,
+          birth_google_place_id: googleBirth,
+          natal_chart: null, natal_interpretation: null, natal_chart_generated_at: null,
           timezone: residence.timezone,
-          residence,
+          residence: storedLocation(residence),
           birth_place_input: birth_place_input ?? null,
-          birth_place_resolved: birth_place_resolved ?? null,
+          birth_place_resolved: googleBirth ? (body.birth_location.input_label || birth_place_input) : birth_place_resolved ?? null,
           subscription_status: "inactive",
         },
       ])

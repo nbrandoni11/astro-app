@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { deliveryTimezone, effectiveLocation, localDate, wallTimeToUtc, localParts, offsetHours } from "@/lib/location-time";
+import { resolveBirthProfile, resolveSavedLocation, storedLocation } from "@/lib/google-places";
 import { assertChart } from "@/lib/chart-data";
 import { getNatalChart, getDailyTransits } from "@/lib/astro-engine";
 
@@ -33,15 +34,16 @@ export async function POST(req: NextRequest) {
             .select("*")
             .eq("id", userId);
 
-        const user = users?.[0];
+        const rawUser = users?.[0];
 
-        if (error || !user) {
+        if (error || !rawUser) {
             return NextResponse.json(
                 { ok: false, error: "Usuario no encontrado" },
                 { status: 404 }
             );
         }
 
+        const user = await resolveBirthProfile(rawUser);
         const now = new Date();
         const { data: trips, error: tripsError } = await supabaseAdmin.from("user_trips").select("*").eq("user_id", user.id).is("cancelled_at", null);
         if (tripsError) throw new Error("No se pudieron consultar los viajes");
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
 
         // The target day's noon may fall in a different location if a trip begins overnight.
         const noon = wallTimeToUtc(`${formattedDate}T12:00`, timezone);
-        const location = effectiveLocation(user.residence, trips ?? [], noon);
+        const location = await resolveSavedLocation(effectiveLocation(user.residence, trips ?? [], noon));
         const localSky = location ? await getNatalChart({
             ...localParts(noon, location.timezone), min: localParts(noon, location.timezone).minute,
             lat: location.lat, lon: location.lon, tzone: offsetHours(noon, location.timezone),
@@ -520,7 +522,7 @@ ${JSON.stringify(transits)}
                 whatsapp_message_2: whatsappMessage2,
                 horoscope_date: formattedDate,
                 timezone_used: timezone,
-                location_used: location,
+                location_used: location ? storedLocation(location) : null,
                 status: "generated",
                 send_status: "pending",
             });

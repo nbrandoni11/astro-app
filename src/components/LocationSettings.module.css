@@ -11,3 +11,5 @@
 .trip p { margin: .3rem 0; }
 .message { font-size: .85rem; line-height: 1.5; color: var(--text); }
 .toggle { cursor: pointer; color: var(--text); margin: .8rem 0; }
+
+.googleAttribution { font-family: Arial,sans-serif; font-weight: 400; font-size: 12px; font-style: normal; color: #fff; white-space: nowrap; align-self: flex-end; margin: 8px 0; }

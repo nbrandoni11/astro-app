@@ -1,4 +1,4 @@
-export type Location = { label: string; country: string; lat: number; lon: number; timezone: string };
+export type Location = { label: string; country: string; lat: number; lon: number; timezone: string; provider?: "google"; place_id?: string; input_label?: string };
 export type Trip = { id?: string; location: Location; starts_at: string; ends_at: string; cancelled_at?: string | null };
 
 export function validTimezone(value: unknown): value is string {

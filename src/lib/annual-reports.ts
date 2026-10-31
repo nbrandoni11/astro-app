@@ -1,3 +1,4 @@
+import { resolveBirthProfile, resolveSavedLocation, storedLocation } from './google-places';
 import { supabaseAdmin } from './supabase-admin';
 import { generateNatalChart } from './generate-natal-chart';
 import { getNatalChart } from './astro-engine';
@@ -72,7 +73,7 @@ async function solarEvent(p: Profile, year: number) {
 }
 async function solarReport(p: Profile, year: number, instant: Date, trips: Trip[]) {
   // For past returns without a recorded trip, label the residence as a reference.
-  const location = effectiveLocation(p.residence, trips, instant);
+  const location = await resolveSavedLocation(effectiveLocation(p.residence, trips, instant));
   if (!location) return;
   const locationKey = `${location.lat.toFixed(5)},${location.lon.toFixed(5)}`;
   const id = await claim(p.id, 'solar', year, locationKey);
@@ -86,10 +87,11 @@ async function solarReport(p: Profile, year: number, instant: Date, trips: Trip[
     ] }), signal:AbortSignal.timeout(120000) });
     const data = await ai.json(); const text = data.choices?.[0]?.message?.content?.trim();
     if (!ai.ok || !text) throw new Error('No se pudo generar la interpretación anual.');
-    await complete(id, { chart, interpretation:text, return_at:instant.toISOString(), location, location_basis:trips.some(t=>!t.cancelled_at&&Date.parse(t.starts_at)<=instant.getTime()&&instant.getTime()<Date.parse(t.ends_at))?'trip':'residence' });
+    await complete(id, { chart, interpretation:text, return_at:instant.toISOString(), location: storedLocation(location), location_basis:trips.some(t=>!t.cancelled_at&&Date.parse(t.starts_at)<=instant.getTime()&&instant.getTime()<Date.parse(t.ends_at))?'trip':'residence' });
   } catch(e) { await failed(id,e); throw e; }
 }
-export async function ensureAnnualReports(p: Profile, trips: Trip[], now = new Date()) {
+export async function ensureAnnualReports(profile: Profile, trips: Trip[], now = new Date()) {
+  const p = await resolveBirthProfile(profile);
   await ensureNatal(p);
   if (!p.natal_chart) return;
   const year = now.getUTCFullYear();

@@ -1,3 +1,4 @@
+import { resolveBirthProfile } from "./google-places";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { generateNatalChart } from "@/lib/generate-natal-chart";
 
@@ -36,18 +37,19 @@ export async function getMercadoPagoSubscription(id: string) {
 }
 
 async function ensureNatalChart(authUserId: string) {
-  const { data: user, error } = await supabaseAdmin
+  const { data: rawUser, error } = await supabaseAdmin
     .from("users")
     .select(
-      "birth_day,birth_month,birth_year,birth_hour,birth_min,birth_lat,birth_lon,birth_tzone,natal_chart,natal_interpretation"
+      "birth_day,birth_month,birth_year,birth_hour,birth_min,birth_lat,birth_lon,birth_tzone,birth_google_place_id,natal_chart,natal_interpretation"
     )
     .eq("auth_user_id", authUserId)
     .single();
 
-  if (error || !user) {
+  if (error || !rawUser) {
     throw new Error("No se pudieron obtener los datos natales del usuario");
   }
 
+  const user = await resolveBirthProfile(rawUser);
   if (user.natal_chart && user.natal_interpretation) {
     return false;
   }

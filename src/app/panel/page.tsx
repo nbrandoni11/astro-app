@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import styles from "./panel.module.css";
 import { createClient } from "@/lib/supabase-server";
 import ReactMarkdown from "react-markdown";
+import { displayLocation } from "@/lib/google-places";
 import AstroChart from "@/components/AstroChart";
 import LocationSettings from "@/components/LocationSettings";
 import GenerateReportsButton from "@/components/GenerateReportsButton";
@@ -46,7 +47,9 @@ export default async function PanelPage() {
     supabase.from("user_trips").select("*").eq("user_id", profile.id).is("cancelled_at", null).order("starts_at"),
     supabase.from("astro_reports").select("id,kind,year,status,chart,interpretation,return_at,location,location_basis,created_at").eq("user_id", profile.id).eq("kind", "solar").order("year", { ascending: false }).order("created_at", { ascending: false }),
   ]);
-  const activeLocation = effectiveLocation(profile.residence, trips ?? []);
+  const residenceDisplay = await displayLocation(profile.residence);
+  const tripsDisplay = await Promise.all((trips ?? []).map(async t => ({...t, location: await displayLocation(t.location)})));
+  const activeLocation = effectiveLocation(residenceDisplay, tripsDisplay);
   const timezone = deliveryTimezone(profile.residence, trips ?? [], profile.timezone);
 
   const nextPaymentDate = profile.subscription_next_payment_at
@@ -182,7 +185,7 @@ export default async function PanelPage() {
 
         <section className={styles.card} id="ubicacion">
           <h2 className={styles.cardLabel}>Residencia y viajes</h2>
-          <LocationSettings residence={profile.residence ?? null} trips={trips ?? []} now={new Date().toISOString()} />
+          <LocationSettings residence={residenceDisplay} trips={tripsDisplay} now={new Date().toISOString()} />
         </section>
 
         <section className={styles.card} id="carta-natal">
