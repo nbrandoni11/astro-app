@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DAILY_HOROSCOPE_1_CONTENT_SID =
-    "HX19035d228e5c28dff4cc2c1a6b551204";
+    "HX55f7e09dc29550b27f2a1367613aa740";
 
 const DAILY_HOROSCOPE_2_CONTENT_SID =
-    "HX2be5cad636aa6ea472fd533b8b02ef34";
+    "HXad45529849240cc53204c15ffbcb4703";
 
 // Límites conservadores para las variables.
 // El mensaje final de Twilio tiene un límite de 1600 caracteres.
