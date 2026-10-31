@@ -17,36 +17,14 @@ function WhatsAppIcon() {
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
-   PLACEHOLDER_PLANETARY_VISUAL
-   Replace with <Image src="/planetary-visual.png" …> when asset is ready.
-   ──────────────────────────────────────────────────────────────────────────── */
 function PlanetaryVisual() {
-  return (
-    <div className={styles.planetOrbit} aria-hidden="true">
-      <div className={styles.ambientGlow} />
-
-      <div className={styles.orbitRing1} />
-      <div className={styles.orbitRing2} />
-      <div className={styles.orbitRing3} />
-      <div className={styles.orbitRing4} />
-      <div className={styles.orbitRing5} />
-
-      <div className={styles.orbitCenter} />
-
-      <div className={styles.planetLarge} />
-      <div className={styles.planetMedium} />
-      <div className={styles.planetSmall1} />
-      <div className={styles.planetSmall2} />
-      <div className={styles.planetTiny} />
-
-      <div className={styles.decorLine1} />
-      <div className={styles.decorLine2} />
-      <div className={styles.decorStar1} />
-      <div className={styles.decorStar2} />
-      <div className={styles.decorStar3} />
+  return <figure className={styles.orrery} aria-label="Ilustración animada de órbitas planetarias, sin escala astronómica">
+    <div className={styles.orbitalMap} aria-hidden="true">
+      <div className={styles.sun} />
+      {[0,1,2,3,4].map(i => <div key={i} className={`${styles.orbit} ${styles[`orbit${i}`]}`}><div className={styles.revolution}><span className={styles.planet} /></div></div>)}
     </div>
-  );
+    <figcaption className={styles.orbitCaption}>EL CIELO SE MUEVE. TU MAPA PERMANECE.</figcaption>
+  </figure>;
 }
 
 export default function LandingPage() {
@@ -59,21 +37,21 @@ export default function LandingPage() {
       <nav className={`${styles.nav} page-content`}>
         <div className={styles.navInner}>
           <Image
-            src="/id-astral-logo.png"
+            src="/id-astral-horizontal.png"
             alt="ID Astral"
-            width={150}
-            height={50}
+            width={1920}
+            height={483}
             className={styles.brandLogo}
             style={{
-              width: "auto",
-              height: "50px",
+              width: "190px",
+              height: "auto",
             }}
             priority
           />
 
-          <Link href="/onboarding" className={styles.navCta}>
+          <div className={styles.navLinks}><Link href="/login">Mi cuenta</Link><Link href="/onboarding" className={styles.navCta}>
             Empezar
-          </Link>
+          </Link></div>
         </div>
       </nav>
 
@@ -268,7 +246,7 @@ export default function LandingPage() {
                 <span className={styles.readingDateValue}>28 de mayo</span>
               </div>
 
-              <span className={styles.readingBadge}>✦ Carta natal</span>
+              <span className={styles.readingBadge}>Ejemplo de lectura</span>
             </div>
 
             <div className={styles.readingBody}>
@@ -280,75 +258,16 @@ export default function LandingPage() {
             </div>
 
             <div className={styles.readingGrid}>
-              <div className={styles.readingSection}>
-                <div className={styles.readingSectionIcon}>◐</div>
-                <div className={styles.readingSectionName}>
-                  Panorama general
-                </div>
-
-                <div className={styles.readingSectionBar}>
-                  <div
-                    className={styles.readingSectionFill}
-                    style={{ width: "82%" }}
-                  />
-                </div>
-
-                <p className={styles.readingSectionText}>
-                  Lo más relevante del día en todos los ámbitos.
-                </p>
-              </div>
-
-              <div className={styles.readingSection}>
-                <div className={styles.readingSectionIcon}>♄</div>
-                <div className={styles.readingSectionName}>
-                  Trabajo y dinero
-                </div>
-
-                <div className={styles.readingSectionBar}>
-                  <div
-                    className={styles.readingSectionFill}
-                    style={{ width: "78%" }}
-                  />
-                </div>
-
-                <p className={styles.readingSectionText}>
-                  Oportunidades, foco profesional y energía productiva.
-                </p>
-              </div>
-
-              <div className={styles.readingSection}>
-                <div className={styles.readingSectionIcon}>♀</div>
-                <div className={styles.readingSectionName}>Relaciones</div>
-
-                <div className={styles.readingSectionBar}>
-                  <div
-                    className={styles.readingSectionFill}
-                    style={{ width: "65%" }}
-                  />
-                </div>
-
-                <p className={styles.readingSectionText}>
-                  Vínculos, parejas y conexiones del día.
-                </p>
-              </div>
-
-              <div className={styles.readingSection}>
-                <div className={styles.readingSectionIcon}>☽</div>
-                <div className={styles.readingSectionName}>
-                  Energía interna
-                </div>
-
-                <div className={styles.readingSectionBar}>
-                  <div
-                    className={styles.readingSectionFill}
-                    style={{ width: "71%" }}
-                  />
-                </div>
-
-                <p className={styles.readingSectionText}>
-                  Tu estado emocional e intuición para hoy.
-                </p>
-              </div>
+              {[
+                ['◐','Panorama general','Lo más relevante del día en todos los ámbitos.'],
+                ['♄','Trabajo y dinero','Oportunidades y foco profesional.'],
+                ['♀','Relaciones','Vínculos y conexiones del día.'],
+                ['☽','Energía interna','Tu estado emocional e intuición.'],
+              ].map(([icon,title,description]) => <div key={title} className={styles.readingSection}>
+                <div className={styles.readingSectionIcon} aria-hidden="true">{icon}</div>
+                <div className={styles.readingSectionName}>{title}</div>
+                <p className={styles.readingSectionText}>{description}</p>
+              </div>)}
             </div>
 
             <div className={styles.readingFooter}>
@@ -391,19 +310,19 @@ export default function LandingPage() {
 
           <div className={styles.trustGrid}>
             <div className={styles.trustItem}>
-              <span className={styles.trustIcon}>🔒</span>
+              
               <span className={styles.trustLabel}>
                 Privado y confidencial
               </span>
             </div>
 
             <div className={styles.trustItem}>
-              <span className={styles.trustIcon}>↩</span>
+              
               <span className={styles.trustLabel}>Sin permanencia</span>
             </div>
 
             <div className={styles.trustItem}>
-              <span className={styles.trustIcon}>◇</span>
+              
               <span className={styles.trustLabel}>
                 Atención personalizada
               </span>
@@ -416,17 +335,18 @@ export default function LandingPage() {
       <footer className={`${styles.footer} page-content`}>
         <div className={styles.footerInner}>
           <Image
-            src="/id-astral-logo.png"
+            src="/id-astral-horizontal.png"
             alt="ID Astral"
-            width={130}
-            height={44}
+            width={1920}
+            height={483}
             className={styles.footerBrandLogo}
             style={{
-              width: "auto",
-              height: "44px",
+              width: "190px",
+              height: "auto",
             }}
           />
 
+          <div className={styles.navLinks}><Link href="/terminos">Términos</Link><Link href="/privacidad">Privacidad</Link><a href="mailto:nbrandoni.exe@gmail.com">Contacto</a></div>
           <p className={styles.footerText}>
             © 2026 — Todos los derechos reservados
           </p>

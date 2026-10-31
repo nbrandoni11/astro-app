@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, DM_Serif_Display } from 'next/font/google';
 import './globals.css';
+import SupportAssistant from '@/components/SupportAssistant';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   title: 'ID Astral — Tu horóscopo personal cada noche',
   description:
     'Recibí todas las noches un horóscopo personalizado basado en tu carta natal y los tránsitos del día, directo en WhatsApp.',
+  icons: { icon: '/id-astral-favicon.png', shortcut: '/id-astral-favicon.png', apple: '/id-astral-mark.png' },
   keywords: 'astrología, horóscopo, carta natal, personalizado, WhatsApp',
 };
 
@@ -34,6 +36,7 @@ export default function RootLayout({
         <main className="main-container">
           {children}
         </main>
+        <SupportAssistant />
       </body>
     </html>
   );

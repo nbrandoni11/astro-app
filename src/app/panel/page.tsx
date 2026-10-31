@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { subscriptionAccess } from "@/lib/subscription-access";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -85,7 +86,7 @@ export default async function PanelPage() {
       <div className={`${styles.pageWrap} page-content`}>
         {/* Header */}
         <header className={styles.header}>
-          <span className={styles.logo}>✦ ID Astral</span>
+          <Image src="/id-astral-horizontal.png" alt="ID Astral" width={190} height={48} style={{ objectFit: "contain" }} />
           <h1 className={styles.pageTitle}>Mi cuenta</h1>
         </header>
 

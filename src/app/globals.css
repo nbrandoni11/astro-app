@@ -1,22 +1,22 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    ASTROLOGIQA — DESIGN SYSTEM
-   Dark mode premium: #070711 bg, #7C5CFF primary, DM Serif Display headings
+   Dark mode premium: #080f20 bg, #d9ba83 primary, DM Serif Display headings
 ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
   /* Colors */
-  --bg:           #070711;
-  --bg-elevated:  #0D0D1A;
-  --card:         #10101A;
+  --bg:           #080f20;
+  --bg-elevated:  #0e1728;
+  --card:         #111b2d;
   --card-hover:   #13132200;
-  --primary:      #7C5CFF;
-  --primary-dim:  rgba(124, 92, 255, 0.18);
-  --primary-glow: rgba(124, 92, 255, 0.28);
-  --border:       rgba(124, 92, 255, 0.16);
+  --primary:      #d9ba83;
+  --primary-dim:  rgba(207, 174, 119, 0.18);
+  --primary-glow: rgba(207, 174, 119, 0.28);
+  --border:       rgba(207, 174, 119, 0.16);
   --border-subtle: rgba(255, 255, 255, 0.06);
   --text:         #F5F5F7;
   --text-muted:   #B9B9C8;
-  --text-dim:     #6B6B80;
+  --text-dim:     #9aa4b7;
   --success:      #4ECCA3;
   --success-dim:  rgba(78, 204, 163, 0.15);
   --warning:      #F5A623;
@@ -51,7 +51,7 @@
 
   /* Shadows */
   --shadow-card: 0 1px 0 var(--border), 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 40px var(--primary-glow), 0 0 80px rgba(124, 92, 255, 0.1);
+  --shadow-glow: 0 0 40px var(--primary-glow), 0 0 80px rgba(207, 174, 119, 0.1);
 
   /* Transitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -213,7 +213,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card:hover {
-  border-color: rgba(124, 92, 255, 0.3);
+  border-color: rgba(207, 174, 119, 0.3);
 }
 
 .card-glass {
@@ -242,7 +242,7 @@ h1, h2, h3, h4, h5, h6 {
 .badge-primary {
   background: var(--primary-dim);
   color: #A88BFF;
-  border: 1px solid rgba(124, 92, 255, 0.25);
+  border: 1px solid rgba(207, 174, 119, 0.25);
 }
 
 .badge-success {
@@ -359,7 +359,7 @@ h1, h2, h3, h4, h5, h6 {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124, 92, 255, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(207, 174, 119, 0.06) 0%, transparent 70%);
 }
 
 /* ─── Page z-indexing ────────────────────────────────────────────────────── */
@@ -380,3 +380,6 @@ h1, h2, h3, h4, h5, h6 {
     padding: var(--space-24) var(--space-8);
   }
 }
+
+:focus-visible{outline:2px solid #d9ba83;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.stars-bg{animation:none}}

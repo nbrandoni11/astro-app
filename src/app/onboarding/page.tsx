@@ -1,5 +1,6 @@
 'use client';
 
+import Image from "next/image";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -133,7 +134,7 @@ export default function OnboardingPage() {
 
         {/* ── Logo ─────────────────────────────────────────────────────── */}
         <div className={styles.logoRow}>
-          <span className={styles.logo}>✦ ID Astral</span>
+          <Image src="/id-astral-horizontal.png" alt="ID Astral" width={190} height={48} style={{ objectFit: "contain" }} />
         </div>
 
         {/* ── Progress bar ─────────────────────────────────────────────── */}

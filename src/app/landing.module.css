@@ -21,7 +21,7 @@
   background: rgba(7, 7, 17, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(124, 92, 255, 0.08);
+  border-bottom: 1px solid rgba(207, 174, 119, 0.08);
 }
 
 .navInner {
@@ -80,7 +80,7 @@
 
 .navCta:hover {
   color: var(--text);
-  border-color: rgba(124, 92, 255, 0.4);
+  border-color: rgba(207, 174, 119, 0.4);
   background: var(--primary-dim);
 }
 
@@ -160,8 +160,8 @@
   font-size: 1rem;
   font-weight: 500;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(124, 92, 255, 0.5);
-  box-shadow: 0 0 24px rgba(124, 92, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(207, 174, 119, 0.5);
+  box-shadow: 0 0 24px rgba(207, 174, 119, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.2s var(--ease-out);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
@@ -169,7 +169,7 @@
 
 .ctaPrimary:hover {
   background: #6B4FE8;
-  box-shadow: 0 0 40px rgba(124, 92, 255, 0.4);
+  box-shadow: 0 0 40px rgba(207, 174, 119, 0.4);
   transform: translateY(-1px);
 }
 
@@ -220,289 +220,6 @@
 
 .trustSep {
   display: none;
-}
-
-/* ── Planetary Visual (Placeholder & Image) ──────────────────────────────── */
-
-.heroVisual {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  perspective: 1000px;
-}
-
-.planetOrbit {
-  position: relative;
-  width: min(100%, 420px);
-  aspect-ratio: 1;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  transform-style: preserve-3d;
-}
-
-.ambientGlow {
-  position: absolute;
-  width: 90%;
-  height: 90%;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--primary-glow) 0%, rgba(124, 92, 255, 0.03) 70%, transparent 100%);
-  filter: blur(20px);
-  z-index: 0;
-  pointer-events: none;
-}
-
-.orbitRing1,
-.orbitRing2,
-.orbitRing3,
-.orbitRing4,
-.orbitRing5 {
-  position: absolute;
-  border: 1px solid rgba(124, 92, 255, 0.1);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform-style: preserve-3d;
-}
-
-/* 3D Celestial Inclinations */
-.orbitRing1 {
-  width: 35%;
-  height: 35%;
-  transform: translate(-50%, -50%) rotateX(65deg) rotateY(-10deg);
-  border-color: rgba(124, 92, 255, 0.15);
-}
-
-.orbitRing2 {
-  width: 55%;
-  height: 55%;
-  transform: translate(-50%, -50%) rotateX(60deg) rotateY(15deg);
-  border-style: dashed;
-  border-color: rgba(124, 92, 255, 0.12);
-}
-
-.orbitRing3 {
-  width: 75%;
-  height: 75%;
-  transform: translate(-50%, -50%) rotateX(70deg) rotateY(-20deg);
-  border-color: rgba(124, 92, 255, 0.08);
-}
-
-.orbitRing4 {
-  width: 90%;
-  height: 90%;
-  transform: translate(-50%, -50%) rotateX(55deg) rotateY(5deg);
-  border-style: dotted;
-  border-color: rgba(124, 92, 255, 0.06);
-}
-
-.orbitRing5 {
-  width: 105%;
-  height: 105%;
-  transform: translate(-50%, -50%) rotateX(75deg) rotateY(-5deg);
-  border-color: rgba(124, 92, 255, 0.04);
-}
-
-.orbitCenter {
-  position: absolute;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #EAE5FF 0%, var(--primary) 40%, rgba(124, 92, 255, 0.2) 70%, transparent 100%);
-  box-shadow: 0 0 40px rgba(124, 92, 255, 0.6), inset 0 0 12px rgba(255, 255, 255, 0.8);
-  z-index: 2;
-  animation: centerPulse 6s ease-in-out infinite alternate;
-}
-
-/* Asymmetric Planetary Bodies */
-.planetLarge {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffd075 0%, #F5A623 60%, #9e5d00 100%);
-  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3), inset -4px -4px 8px rgba(0, 0, 0, 0.5);
-  top: 15%;
-  left: 20%;
-  z-index: 3;
-  animation: floatLarge 8s ease-in-out infinite alternate;
-}
-
-.planetMedium {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #B9B9C8 0%, var(--text-dim) 70%, #20202A 100%);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.05), inset -2px -2px 4px rgba(0, 0, 0, 0.6);
-  bottom: 25%;
-  right: 15%;
-  z-index: 3;
-  animation: floatMedium 10s ease-in-out infinite alternate;
-}
-
-.planetSmall1 {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #A88BFF 0%, var(--primary) 70%, #1a0a50 100%);
-  box-shadow: 0 0 10px rgba(124, 92, 255, 0.4);
-  top: 40%;
-  right: 25%;
-  z-index: 3;
-  animation: floatSmall1 12s ease-in-out infinite alternate;
-}
-
-.planetSmall2 {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #4ECCA3 0%, #2E7D63 80%, #0c2b20 100%);
-  box-shadow: 0 0 8px rgba(78, 204, 163, 0.3);
-  bottom: 20%;
-  left: 30%;
-  z-index: 3;
-  animation: floatSmall2 9s ease-in-out infinite alternate;
-}
-
-.planetTiny {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #FFF;
-  box-shadow: 0 0 6px #FFF;
-  top: 25%;
-  right: 35%;
-  z-index: 3;
-  animation: floatTiny 7s ease-in-out infinite alternate;
-}
-
-/* Decorative constellation lines */
-.decorLine1 {
-  position: absolute;
-  width: 150px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.15), transparent);
-  transform: rotate(-35deg);
-  z-index: 1;
-}
-
-.decorLine2 {
-  position: absolute;
-  width: 200px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.1), transparent);
-  transform: rotate(45deg);
-  z-index: 1;
-}
-
-.decorStar1,
-.decorStar2,
-.decorStar3 {
-  position: absolute;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 8px;
-  z-index: 1;
-}
-
-.decorStar1 {
-  top: 22%;
-  right: 28%;
-}
-
-.decorStar2 {
-  bottom: 30%;
-  left: 22%;
-}
-
-.decorStar3 {
-  top: 60%;
-  left: 18%;
-}
-
-/* Very subtle float/pulse keyframes */
-@keyframes centerPulse {
-  0% {
-    transform: scale(0.97);
-    opacity: 0.95;
-    filter: drop-shadow(0 0 25px rgba(124, 92, 255, 0.5));
-  }
-
-  100% {
-    transform: scale(1.03);
-    opacity: 1;
-    filter: drop-shadow(0 0 35px rgba(124, 92, 255, 0.7));
-  }
-}
-
-@keyframes floatLarge {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(4px, -6px);
-  }
-}
-
-@keyframes floatMedium {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(-6px, 4px);
-  }
-}
-
-@keyframes floatSmall1 {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(5px, 5px);
-  }
-}
-
-@keyframes floatSmall2 {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(-3px, -5px);
-  }
-}
-
-@keyframes floatTiny {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(2px, -3px);
-  }
-}
-
-/* Reduced motion media query */
-@media (prefers-reduced-motion: reduce) {
-
-  .orbitCenter,
-  .planetLarge,
-  .planetMedium,
-  .planetSmall1,
-  .planetSmall2,
-  .planetTiny {
-    animation: none !important;
-  }
 }
 
 /* ── How it works ────────────────────────────────────────────────────────── */
@@ -567,7 +284,7 @@
 .timelineLine {
   width: 2px;
   flex: 1;
-  background: rgba(124, 92, 255, 0.15);
+  background: rgba(207, 174, 119, 0.15);
   margin-top: 6px;
 }
 
@@ -675,7 +392,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 0 60px rgba(124, 92, 255, 0.08), var(--shadow-card);
+  box-shadow: 0 0 60px rgba(207, 174, 119, 0.08), var(--shadow-card);
   max-width: 800px;
   margin: 0 auto;
 }
@@ -714,9 +431,9 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #A88BFF;
+  color: #dfc394;
   background: var(--primary-dim);
-  border: 1px solid rgba(124, 92, 255, 0.25);
+  border: 1px solid rgba(207, 174, 119, 0.25);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
 }
@@ -756,7 +473,7 @@
 }
 
 .readingSection:hover {
-  background: rgba(124, 92, 255, 0.03);
+  background: rgba(207, 174, 119, 0.03);
 }
 
 .readingSectionIcon {
@@ -785,7 +502,7 @@
 
 .readingSectionFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), rgba(124, 92, 255, 0.4));
+  background: linear-gradient(90deg, var(--primary), rgba(207, 174, 119, 0.4));
   border-radius: var(--radius-pill);
 }
 
@@ -996,3 +713,5 @@
     padding-block: 7rem;
   }
 }
+/* ID Astral — editorial navy / warm brass */
+.root{background:#080f20}.nav{height:82px;background:#080f20f5;backdrop-filter:none;border-bottom:1px solid #c8aa7529}.navLinks{display:flex;align-items:center;gap:24px;font-size:13px;color:#c6c8cc}.navCta{border-radius:3px;background:transparent;border:1px solid #c8aa7566;color:#e4c896;padding:9px 18px}.hero{padding-top:140px}.heroTitle{font-size:clamp(3.5rem,7vw,6.8rem);letter-spacing:-.055em;line-height:1.02}.heroEmphasis{color:#e7cb9b}.heroSub{max-width:440px;font-size:17px;line-height:1.8}.heroTrust{gap:12px;flex-wrap:wrap}.heroTrust span{color:#aeb4c0;font-size:11px}.ctaPrimary{background:#e3c592;color:#131b2d;border-radius:3px;box-shadow:none;font-weight:600}.ctaPrimary:hover{background:#f0d9b2;box-shadow:none;transform:none}.ctaWhatsapp{color:inherit}.ctaSecondary{border-radius:3px}.sectionLabel{font-size:10px;letter-spacing:.18em;color:#cfaf79}.precisionDot,.timelineNode{box-shadow:none;background:#c9ad7c}.readingCard{background:#10192a;border:1px solid #c6aa7540;border-radius:3px;box-shadow:none}.readingBadge{background:transparent;color:#d2bb96;border:none;letter-spacing:.04em}.readingSectionBar{display:none}.readingSectionIcon{font-size:24px;color:#d2bb96}.readingSectionName{color:#ddd8cc;letter-spacing:.04em}.readingSectionText{color:#aeb6c4;font-size:13px}.readingIntro{font-size:17px;color:#d9d9d4}.timelineTitle{font-family:var(--font-heading);font-size:26px;font-weight:400}.trustGrid{border-top:1px solid #ffffff17;padding-top:24px}.trustItem{gap:0}.trustLabel{font-size:12px;color:#b4bccb}.footerInner{gap:24px}.footerText{opacity:1}.orrery{width:100%;max-width:540px;margin:0;position:relative;padding:24px 0}.orbitalMap{width:100%;aspect-ratio:1;position:relative;transform:rotate(-18deg);isolation:isolate}.sun{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff8e4,#e7bd76 48%,#865b2d);box-shadow:0 0 48px #dfb15a28}.orbit{position:absolute;left:50%;top:50%;border:1px solid #c2ac7f38;border-radius:50%;transform:translate(-50%,-50%)}.orbit0{width:26%;height:26%;--period:16s;--size:6px}.orbit1{width:43%;height:43%;--period:27s;--size:11px}.orbit2{width:61%;height:61%;--period:42s;--size:14px}.orbit3{width:79%;height:79%;--period:67s;--size:20px}.orbit4{width:97%;height:97%;--period:96s;--size:9px}.revolution{position:absolute;inset:-1px;animation:orbitTurn var(--period) linear infinite}.planet{position:absolute;left:50%;top:0;width:var(--size);height:var(--size);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 30% 25%,#f6e9cd,#b2a98e 50%,#4c4a45);box-shadow:2px 3px 7px #0008}.orbit1 .revolution{animation-delay:-9s}.orbit2 .revolution{animation-delay:-21s}.orbit2 .planet{background:radial-gradient(circle at 28% 25%,#c1d1cb,#5e817b 48%,#1c343c)}.orbit3 .revolution{animation-delay:-15s}.orbit3 .planet{background:repeating-linear-gradient(25deg,#d1b48b 0 3px,#99785b 4px 6px);box-shadow:inset -6px -4px 7px #282118,2px 3px 7px #0008}.orbit4 .revolution{animation-delay:-47s}.orbitCaption{text-align:center;font-size:9px;letter-spacing:.18em;color:#a6a28e;margin-top:14px}@keyframes orbitTurn{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.revolution{animation:none}.orbit1 .revolution{transform:rotate(70deg)}.orbit2 .revolution{transform:rotate(180deg)}.orbit3 .revolution{transform:rotate(250deg)}.orbit4 .revolution{transform:rotate(320deg)}}@media(min-width:900px){.heroLayout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}.hero{padding-top:165px;padding-bottom:85px}.footerInner{flex-direction:row;flex-wrap:wrap;justify-content:space-between}.heroTrust{gap:12px}.heroVisual{width:100%}}@media(max-width:600px){.nav{padding:0 20px}.navLinks{gap:14px;font-size:12px}.brandLogo{max-width:150px}.heroVisual{margin-top:25px}.orrery{max-width:360px}.heroTitle{font-size:58px}.hero{padding-top:125px}.footer{padding-bottom:95px}}
