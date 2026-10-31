@@ -155,7 +155,7 @@ export default function LandingPage() {
           <h2 className={`heading-lg ${styles.sectionTitle}`}>
             Una lectura diaria basada
             <br />
-            <em>sobre tu carta natal</em>
+            <em>en tu carta natal</em>
           </h2>
 
           <div className={styles.timeline}>

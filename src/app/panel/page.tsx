@@ -186,7 +186,7 @@ export default async function PanelPage() {
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon}>◈</span>
               <p className={styles.emptyText}>
-                Tu primera lectura llegará a las 22:00 y corresponderá al día siguiente.
+                Al confirmarse el pago se preparará tu primera lectura. Después se aplicará el horario que elegiste.
               </p>
             </div>
           )}
