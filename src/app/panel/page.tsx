@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import styles from "./panel.module.css";
 import { createClient } from "@/lib/supabase-server";
-import ReactMarkdown from "react-markdown";
+import ReadingDocument from "@/components/ReadingDocument";
 import { displayLocation } from "@/lib/google-places";
 import AstroChart from "@/components/AstroChart";
 import LocationSettings from "@/components/LocationSettings";
@@ -169,19 +169,14 @@ export default async function PanelPage() {
         <DeliverySettings preferences={{delivery_day:profile.delivery_day,delivery_minute:profile.delivery_minute}} timezone={timezone} active={isActive} />
         {/* Last horoscope */}
         <div className={styles.card}>
-          <div className={styles.cardLabel}>Último horóscopo</div>
+          <div className={styles.cardLabel}>Tu lectura diaria</div>
 
-          {horoscope && <p className={styles.helpText}>Lectura del {horoscope.horoscope_date.split("-").reverse().join("/")}</p>}
           {horoscope ? (
-            <div
-              style={{
-                fontSize: "0.875rem",
-                lineHeight: "1.6",
-                color: "var(--text-dim)",
-              }}
-            >
-              <ReactMarkdown>{horoscope.horoscope_text}</ReactMarkdown>
-            </div>
+            <>
+              <h2 className={styles.readingTitle}>{new Intl.DateTimeFormat('es-AR',{dateStyle:'long',timeZone:'UTC'}).format(new Date(`${horoscope.horoscope_date}T12:00:00Z`))}</h2>
+              <p className={styles.helpText}>Tu lectura personal, en seis momentos.</p>
+              <ReadingDocument text={horoscope.horoscope_text} kind="daily" id="lectura-diaria" />
+            </>
           ) : (
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon}>◈</span>
@@ -199,9 +194,9 @@ export default async function PanelPage() {
 
         <section className={styles.card} id="carta-natal">
           <h2 className={styles.sectionTitle}>Mi carta natal</h2>
-          <p className={styles.helpText}>Tu carta de nacimiento permanece disponible para consultarla cuando quieras. Viajar no modifica esta carta.</p>
+          <p className={styles.helpText}>Tu carta de nacimiento permanece disponible para consultarla cuando quieras. Los aspectos muestran las relaciones entre los planetas de tu nacimiento. Viajar no modifica esta carta.</p>
           {profile.natal_chart && <AstroChart data={profile.natal_chart} title="Tu carta natal" />}
-          {profile.natal_interpretation ? <details className={styles.reportDetails}><summary>Leer mi interpretación natal</summary><div className={styles.reading}><ReactMarkdown>{profile.natal_interpretation}</ReactMarkdown></div></details> : <>
+          {profile.natal_interpretation ? <div className={styles.natalInterpretation}><p className={styles.cardLabel}>Más allá del gráfico</p><h2 className={styles.readingTitle}>Tu interpretación natal</h2><ReadingDocument text={profile.natal_interpretation} id="interpretacion-natal" /></div> : <>
             <p className={styles.helpText}>{isActive ? 'Tu interpretación todavía no está preparada. Podés generarla ahora.' : 'La carta se prepara al activar tu suscripción.'}</p>
             {isActive && <GenerateReportsButton />}
           </>}
@@ -215,7 +210,7 @@ export default async function PanelPage() {
             <summary>Ciclo {report.year}–{report.year + 1} · {report.status === 'ready' ? report.location?.label ?? 'Informe anual' : report.status === 'processing' ? 'Preparando' : 'Pendiente de completar'}</summary>
             {report.return_at && <p className={styles.helpText}>Retorno solar: {new Intl.DateTimeFormat('es-AR', { dateStyle:'long', timeStyle:'short', timeZone:report.location?.timezone ?? timezone }).format(new Date(report.return_at))} ({report.location?.timezone ?? timezone}).</p>}
             {report.location_basis === 'residence' && <p className={styles.helpText}>Ubicación de referencia: residencia declarada al calcular el informe. Si el retorno ya ocurrió, comprobá que coincide con el lugar donde estabas.</p>}
-            {report.status === 'ready' && <><AstroChart data={report.chart} title={`Revolución solar ${report.year}`} /><div className={styles.reading}><ReactMarkdown>{report.interpretation}</ReactMarkdown></div></>}
+            {report.status === 'ready' && <><AstroChart data={report.chart} title={`Revolución solar ${report.year}`} /><ReadingDocument text={report.interpretation} id={`solar-${report.id}`} /></>}
           </details>) : <p className={styles.helpText}>Tus informes anuales aparecerán acá y quedarán guardados por ciclo.</p>}
           {isActive && profile.residence && <GenerateReportsButton />}
           <p className={styles.helpText}>Si cambiás la ubicación prevista, se preparará una nueva versión. Las anteriores conservan su lugar de cálculo.</p>
