@@ -185,13 +185,14 @@ export default function OnboardingPage() {
               <div className={styles.dateTimeRow}>
                 <div className={styles.dateField}>
                   <Input
-                    label="Fecha de nacimiento"
+                    label="Fecha de nacimiento · día / mes / año"
                     name="birth_date"
                     value={formData.birth_year ? `${formData.birth_year}-${formData.birth_month}-${formData.birth_day}` : ""}
                     type="date"
                     required
                     onChange={handleDateChange}
                   />
+                  {formData.birth_year && formData.birth_month && formData.birth_day && <p style={{fontSize:'13px',color:'var(--primary)',marginTop:'8px'}}>Fecha elegida: {new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${formData.birth_year}-${formData.birth_month}-${formData.birth_day}T12:00:00Z`))}</p>}
                 </div>
                 <div className={styles.timeField}>
                   <Input
