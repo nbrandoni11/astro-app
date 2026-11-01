@@ -157,6 +157,14 @@ export async function GET(req: Request) {
             .limit(10);
         const horoscopeId=new URL(req.url).searchParams.get("horoscopeId");
         if(horoscopeId)pendingQuery=pendingQuery.eq("id",horoscopeId);
+        else {
+            // Filter by access, local date, trip and chosen time BEFORE limiting the batch.
+            // Old/paused/future rows must never hide eligible deliveries behind them.
+            const {data:due,error:dueError}=await supabaseAdmin.rpc("due_horoscope_ids",{p_limit:10});
+            if(dueError)throw dueError;
+            if(!due?.length)return NextResponse.json({ok:true,sent:0,results:[]});
+            pendingQuery=pendingQuery.in("id",due.map((row:{id:string})=>row.id));
+        }
         const {data:pending,error}=await pendingQuery;
 
         if (error) {
