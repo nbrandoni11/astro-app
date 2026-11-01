@@ -1,3 +1,4 @@
+import { birthDateISO } from "@/lib/birth-date";
 import { checkoutToken } from "@/lib/checkout-token";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
@@ -104,16 +105,13 @@ export async function POST(req: Request) {
       birth_place_resolved,
     } = body;
 
-    if (!full_name || !email || !phone_whatsapp) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Faltan campos obligatorios: full_name, email, phone_whatsapp",
-        },
-        { status: 400 }
-      );
+    if (typeof full_name!=="string" || full_name.trim().length<2 || typeof email!=="string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || typeof phone_whatsapp!=="string" || !/^\+[1-9]\d{7,14}$/.test(phone_whatsapp.replace(/[\s().-]/g,""))) {
+      return NextResponse.json({ok:false,error:"Revisá tu nombre, correo y WhatsApp con código de país."},{status:400});
     }
+    try {
+      birthDateISO(birth_day,birth_month,birth_year);
+      if(!Number.isInteger(birth_hour)||birth_hour<0||birth_hour>23||!Number.isInteger(birth_min)||birth_min<0||birth_min>59)throw new Error("Revisá la hora de nacimiento: usá formato de 24 horas.");
+    } catch(e) {return NextResponse.json({ok:false,error:e instanceof Error?e.message:"Revisá la fecha de nacimiento."},{status:400});}
 
     let residence;
     try { residence = await submittedLocation(body.residence); } catch { return NextResponse.json({ ok: false, error: "Seleccioná ciudad y país de residencia." }, { status: 400 }); }

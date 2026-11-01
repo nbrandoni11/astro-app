@@ -1,277 +1,83 @@
 'use client';
-
-import Image from "next/image";
-import React, { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect,useRef,useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import styles from './onboarding.module.css';
 import CityPicker from '@/components/CityPicker';
-import { wallTimeToUtc, offsetHours, type Location } from '@/lib/location-time';
-
-interface FormData {
-  full_name: string;
-  email: string;
-  birth_day: string;
-  birth_month: string;
-  birth_year: string;
-  birth_hour: string;
-  birth_min: string;
-  phone_whatsapp: string;
-}
-
-
-export default function OnboardingPage() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [placeError, setPlaceError] = useState('');
-
-  const [formData, setFormData] = useState<FormData>({
-    full_name: '',
-    email: '',
-    birth_day: '',
-    birth_month: '',
-    birth_year: '',
-    birth_hour: '',
-    birth_min: '',
-    phone_whatsapp: '',
-  });
-
-  const [birthLocation, setBirthLocation] = useState<Location | null>(null);
-  const [residence, setResidence] = useState<Location | null>(null);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [year, month, day] = e.target.value.split('-');
-    setFormData((prev) => ({
-      ...prev,
-      birth_year: year || '',
-      birth_month: month || '',
-      birth_day: day || '',
-    }));
-  };
-
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [hour, min] = e.target.value.split(':');
-    setFormData((prev) => ({
-      ...prev,
-      birth_hour: hour || '',
-      birth_min: min || '',
-    }));
-  };
-
-  const birthOffset = () => {
-    if (!birthLocation) throw new Error('Seleccioná un lugar de nacimiento de la lista.');
-    const wall = `${formData.birth_year}-${formData.birth_month}-${formData.birth_day}T${formData.birth_hour}:${formData.birth_min}`;
-    return offsetHours(wallTimeToUtc(wall, birthLocation.timezone), birthLocation.timezone);
-  };
-
-  const handleNextStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setPlaceError('');
-    try { birthOffset(); } catch (e) { setPlaceError(e instanceof Error ? e.message : 'Verificá el lugar y horario de nacimiento.'); return; }
-    setStep(2);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    let birthTzone: number;
-    try { birthTzone = birthOffset(); } catch (e) { setError(e instanceof Error ? e.message : 'Verificá los datos de nacimiento.'); return; }
-    if (!residence) { setError('Seleccioná tu ciudad y país de residencia.'); return; }
-    setIsSubmitting(true);
-    try {
-      const res = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: formData.full_name,
-          email: formData.email,
-          phone_whatsapp: formData.phone_whatsapp,
-          birth_day: formData.birth_day ? parseInt(formData.birth_day, 10) : null,
-          birth_month: formData.birth_month ? parseInt(formData.birth_month, 10) : null,
-          birth_year: formData.birth_year ? parseInt(formData.birth_year, 10) : null,
-          birth_hour: formData.birth_hour ? parseInt(formData.birth_hour, 10) : null,
-          birth_min: formData.birth_min ? parseInt(formData.birth_min, 10) : null,
-          birth_lat: birthLocation!.lat,
-          birth_lon: birthLocation!.lon,
-          birth_tzone: birthTzone,
-          birth_location: birthLocation,
-          timezone: residence.timezone,
-          residence,
-          birth_place_input: birthLocation!.input_label || birthLocation!.label,
-          birth_place_resolved: birthLocation!.label,
-        }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.error || 'Error creando el usuario');
-        setIsSubmitting(false);
-        return;
-      }
-      router.push(`/suscripcion?userId=${data.userId}&email=${encodeURIComponent(data.email)}&checkoutToken=${encodeURIComponent(data.checkoutToken)}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error inesperado');
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className={styles.root}>
-      {/* Stars background */}
-      <div className="stars-bg" aria-hidden="true" />
-
-      {/* Glow top */}
-      <div className={styles.glowTop} aria-hidden="true" />
-
-      <div className={`${styles.pageWrap} page-content`}>
-
-        {/* ── Logo ─────────────────────────────────────────────────────── */}
-        <div className={styles.logoRow}>
-          <Image src="/id-astral-horizontal.png" alt="ID Astral" width={190} height={48} style={{ objectFit: "contain" }} />
-        </div>
-
-        {/* ── Progress bar ─────────────────────────────────────────────── */}
-        <div className={styles.progress} role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={2}>
-          <div className={`${styles.progressStep} ${step >= 1 ? styles.progressStepActive : ''}`}>
-            <span className={styles.progressDot} />
-            <span className={styles.progressLabel}>Datos natales</span>
-          </div>
-          <div className={styles.progressLine}>
-            <div className={styles.progressLineFill} style={{ width: step >= 2 ? '100%' : '0%' }} />
-          </div>
-          <div className={`${styles.progressStep} ${step >= 2 ? styles.progressStepActive : ''}`}>
-            <span className={styles.progressDot} />
-            <span className={styles.progressLabel}>WhatsApp</span>
-          </div>
-        </div>
-
-        {/* ── PASO 1: Datos de nacimiento ───────────────────────────────── */}
-        {step === 1 && (
-          <div className={`${styles.card} animate-fade-up`}>
-            <div className={styles.cardHeader}>
-              <h1 className={styles.cardTitle}>Tus datos de nacimiento</h1>
-              <p className={styles.cardDesc}>
-                Necesitamos esta información para calcular tu carta natal con precisión.
-              </p>
-            </div>
-
-            <form onSubmit={handleNextStep} className={styles.form}>
-              <Input
-                label="Nombre completo"
-                name="full_name"
-                placeholder="Ej. María Pérez"
-                required
-                value={formData.full_name}
-                onChange={handleChange}
-              />
-
-              <Input
-                label="Email"
-                name="email"
-                type="email"
-                placeholder="Ej. maria@email.com"
-                required
-                value={formData.email}
-                onChange={handleChange}
-              />
-
-              <div className={styles.dateTimeRow}>
-                <div className={styles.dateField}>
-                  <Input
-                    label="Fecha de nacimiento · día / mes / año"
-                    name="birth_date"
-                    value={formData.birth_year ? `${formData.birth_year}-${formData.birth_month}-${formData.birth_day}` : ""}
-                    type="date"
-                    required
-                    onChange={handleDateChange}
-                  />
-                  {formData.birth_year && formData.birth_month && formData.birth_day && <p style={{fontSize:'13px',color:'var(--primary)',marginTop:'8px'}}>Fecha elegida: {new Intl.DateTimeFormat('es-AR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${formData.birth_year}-${formData.birth_month}-${formData.birth_day}T12:00:00Z`))}</p>}
-                </div>
-                <div className={styles.timeField}>
-                  <Input
-                    label="Hora de nacimiento"
-                    name="birth_time"
-                    value={formData.birth_hour ? `${formData.birth_hour}:${formData.birth_min}` : ""}
-                    type="time"
-                    placeholder="--:--"
-                    required
-                    onChange={handleTimeChange}
-                  />
-                </div>
-              </div>
-
-              <CityPicker label="Lugar de nacimiento" kind="birth" value={birthLocation} onChange={setBirthLocation} />
-              {placeError && <p className={styles.errorMsg} role="alert">{placeError}</p>}
-
-              <div className={styles.formFooter}>
-                <Button variant="primary" fullWidth type="submit">
-                  Continuar →
-                </Button>
-                <p className={styles.formNote}>
-                  Tu información es privada y confidencial.
-                </p>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* ── PASO 2: WhatsApp ──────────────────────────────────────────── */}
-        {step === 2 && (
-          <div className={`${styles.card} animate-fade-up`}>
-            <div className={styles.cardHeader}>
-              <h1 className={styles.cardTitle}>Tu número de WhatsApp</h1>
-              <p className={styles.cardDesc}>
-                Ahí vas a recibir tu lectura personal. Después podés elegir el horario desde tu cuenta.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className={styles.form}>
-              <Input
-                label="Teléfono WhatsApp"
-                name="phone_whatsapp"
-                type="tel"
-                placeholder="+54 9 11 1234 5678"
-                required
-                value={formData.phone_whatsapp}
-                onChange={handleChange}
-              />
-
-              <div className={styles.whatsappNote}>
-                <span className={styles.whatsappIcon}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.49" />
-                  </svg>
-                </span>
-                Incluí el código de país. Ej: +54 para Argentina.
-              </div>
-
-              <CityPicker label="Ciudad y país donde vivís" value={residence} onChange={setResidence} />
-              <p className={styles.formNote}>Te enviaremos la lectura a las 22:00 de esa ciudad. Podrás informar tus viajes desde tu cuenta.</p>
-              {error && <p className={styles.errorMsg}>{error}</p>}
-
-              <div className={styles.formFooter}>
-                <Button variant="primary" fullWidth type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creando cuenta...' : 'Finalizar registro'}
-                </Button>
-                <button
-                  type="button"
-                  className={styles.backBtn}
-                  onClick={() => setStep(1)}
-                >
-                  ← Volver
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+import { wallTimeToUtc,offsetHours,type Location } from '@/lib/location-time';
+import { birthDateISO,birthDateLabel,monthNames } from '@/lib/birth-date';
+import styles from './onboarding.module.css';
+const steps=['Nacimiento','Contacto y ciudad','Revisar'];
+export default function OnboardingPage(){
+ const router=useRouter();const [step,setStep]=useState(1);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [confirmed,setConfirmed]=useState(false);
+ const [values,setValues]=useState({full_name:'',email:'',phone_whatsapp:'',birth_day:'',birth_month:'',birth_year:'',birth_hour:'',birth_min:''});
+ const [birthLocation,setBirthLocation]=useState<Location|null>(null);const [residence,setResidence]=useState<Location|null>(null);
+ const heading=useRef<HTMLHeadingElement>(null);const errorBox=useRef<HTMLDivElement>(null);
+ useEffect(()=>{heading.current?.focus();},[step]);useEffect(()=>{if(error)errorBox.current?.focus();},[error]);
+ function change(name:keyof typeof values,value:string){setValues(old=>({...old,[name]:value}));setConfirmed(false);setError('');}
+ function go(next:number){setError('');setStep(next);}
+ function date(){return birthDateISO(Number(values.birth_day),Number(values.birth_month),Number(values.birth_year));}
+ function offset(){
+  const iso=date();if(!birthLocation)throw Error('Elegí tu lugar de nacimiento en la lista de resultados.');
+  if(values.birth_hour===''||values.birth_min==='')throw Error('Completá la hora y los minutos de nacimiento.');
+  const instant=wallTimeToUtc(`${iso}T${values.birth_hour.padStart(2,'0')}:${values.birth_min.padStart(2,'0')}`,birthLocation.timezone);
+  return offsetHours(instant,birthLocation.timezone);
+ }
+ let dateLabel='';try{if(values.birth_day&&values.birth_month&&values.birth_year)dateLabel=birthDateLabel(Number(values.birth_day),Number(values.birth_month),Number(values.birth_year));}catch{}
+ async function submit(e:React.FormEvent){
+  e.preventDefault();setError('');
+  try{
+   const birthTzone=offset();
+   if(step===1){go(2);return;}
+   if(values.full_name.trim().length<2)throw Error('Escribí tu nombre para identificar tu cuenta.');
+   const phone=values.phone_whatsapp.replace(/[\s().-]/g,'');
+   if(!/^\+[1-9]\d{7,14}$/.test(phone))throw Error('Ingresá tu WhatsApp con + y código de país. Por ejemplo: +54 9 11 1234 5678.');
+   if(!residence)throw Error('Elegí la ciudad donde vivís en la lista de resultados.');
+   if(step===2){go(3);return;}
+   if(!confirmed)throw Error('Confirmá que la fecha, la hora y el lugar de nacimiento son correctos.');
+   setBusy(true);
+   const res=await fetch('/api/create-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    full_name:values.full_name.trim(),email:values.email.trim().toLowerCase(),phone_whatsapp:phone,
+    birth_day:Number(values.birth_day),birth_month:Number(values.birth_month),birth_year:Number(values.birth_year),birth_hour:Number(values.birth_hour),birth_min:Number(values.birth_min),birth_lat:birthLocation!.lat,birth_lon:birthLocation!.lon,birth_tzone:birthTzone,birth_location:birthLocation,timezone:residence.timezone,residence,birth_place_input:birthLocation!.input_label||birthLocation!.label,birth_place_resolved:birthLocation!.label,
+   })});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'No pudimos continuar. Tus datos siguen en este formulario; intentá nuevamente.');
+   router.push(`/suscripcion?userId=${encodeURIComponent(data.userId)}&email=${encodeURIComponent(data.email)}&checkoutToken=${encodeURIComponent(data.checkoutToken)}`);
+  }catch(e){setError(e instanceof Error?e.message:'No pudimos continuar. Intentá otra vez.');setBusy(false);}
+ }
+ return <div className={styles.root}><div className={styles.pageWrap}>
+  <header className={styles.registrationHeader}><Link href="/" aria-label="Volver al inicio"><Image src="/id-astral-horizontal.png" alt="ID Astral" width={190} height={48}/></Link><Link href="/login">Ya tengo cuenta ↗</Link></header>
+  <nav className={styles.stepper} aria-label="Progreso del registro">{steps.map((label,i)=><div key={label} className={step>=i+1?styles.stepActive:''} aria-current={step===i+1?'step':undefined}><span>{step>i+1?'✓':i+1}</span><p>{label}</p></div>)}</nav>
+  <section className={styles.registrationCard}>
+   <p className={styles.stepEyebrow}>Paso {step} de 3</p>
+   <h1 ref={heading} tabIndex={-1} className={styles.registrationTitle}>{step===1?'Empecemos por tu nacimiento':step===2?'¿Dónde recibís tu lectura?':'Que todo esté bien, desde el inicio'}</h1>
+   <p className={styles.registrationIntro}>{step===1?'La fecha, la hora y el lugar son la base de tu carta natal. Tomate un momento para revisarlos.':step===2?'Usamos tu correo para acceder a la cuenta, tu WhatsApp para las lecturas y tu ciudad actual para el horario.':'Revisá especialmente el día y el mes. Con estos datos vamos a calcular tu carta y tus lecturas personales.'}</p>
+   <form onSubmit={submit} className={styles.registrationForm}>
+    {step===1&&<>
+     <fieldset className={styles.birthFields}><legend>Fecha de nacimiento</legend><div className={styles.birthDateGrid}>
+      <label htmlFor="birth-day">Día<select id="birth-day" name="birth_day" autoComplete="bday-day" value={values.birth_day} onChange={e=>change('birth_day',e.target.value)} required><option value="">Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={String(d)}>{d}</option>)}</select></label>
+      <label htmlFor="birth-month">Mes<select id="birth-month" name="birth_month" autoComplete="bday-month" value={values.birth_month} onChange={e=>change('birth_month',e.target.value)} required><option value="">Mes</option>{monthNames.map((m,i)=><option key={m} value={String(i+1)}>{m}</option>)}</select></label>
+      <label htmlFor="birth-year">Año<input id="birth-year" name="birth_year" type="text" inputMode="numeric" autoComplete="bday-year" pattern="[0-9]{4}" maxLength={4} placeholder="1989" value={values.birth_year} onChange={e=>change('birth_year',e.target.value.replace(/\D/g,''))} required/></label>
+     </div>{dateLabel&&<p className={styles.dateConfirmation} role="status">Tu fecha de nacimiento: <strong>{dateLabel}</strong></p>}</fieldset>
+     <fieldset className={styles.birthFields}><legend>Hora de nacimiento</legend><div className={styles.birthTimeGrid}><label htmlFor="birth-hour">Hora · de 00 a 23<select id="birth-hour" value={values.birth_hour} onChange={e=>change('birth_hour',e.target.value)} required><option value="">Hora</option>{Array.from({length:24},(_,i)=>String(i).padStart(2,'0')).map(h=><option key={h} value={h}>{h}</option>)}</select></label><label htmlFor="birth-minute">Minutos<select id="birth-minute" value={values.birth_min} onChange={e=>change('birth_min',e.target.value)} required><option value="">Minutos</option>{Array.from({length:60},(_,i)=>String(i).padStart(2,'0')).map(m=><option key={m} value={m}>{m}</option>)}</select></label></div><p className={styles.fieldHint}>Usá la hora local de donde naciste. Por ejemplo, 04:50 es de madrugada y 16:50 es por la tarde.</p><details className={styles.timeHelp}><summary>No conozco mi hora exacta</summary><p>Podés buscarla en tu partida de nacimiento o consultar a tu familia. No inventes una hora: influye en el cálculo. Si no la conseguís, escribinos desde Ayuda antes de contratar.</p></details></fieldset>
+     <div className={styles.placeGroup}><CityPicker label="Ciudad y país donde naciste" kind="birth" value={birthLocation} onChange={p=>{setBirthLocation(p);setConfirmed(false);}}/><p className={styles.fieldHint}>Es tu lugar de nacimiento, aunque hoy vivas en otra ciudad.</p></div>
+    </>}
+    {step===2&&<>
+     <Input id="registration-name" label="Tu nombre completo" name="full_name" autoComplete="name" maxLength={100} required value={values.full_name} onChange={e=>change('full_name',e.target.value)} placeholder="María Pérez"/>
+     <Input id="registration-email" label="Tu correo electrónico" name="email" autoComplete="email" type="email" maxLength={254} required value={values.email} onChange={e=>change('email',e.target.value)} placeholder="maria@email.com"/><p className={styles.fieldHint}>Después ingresás con un enlace que llega a este correo. No necesitás contraseña.</p>
+     <Input id="registration-phone" label="Tu WhatsApp" name="phone_whatsapp" autoComplete="tel" type="tel" inputMode="tel" maxLength={30} required value={values.phone_whatsapp} onChange={e=>change('phone_whatsapp',e.target.value)} placeholder="+54 9 11 1234 5678"/><p className={styles.fieldHint}>Incluí + y el código de país. Para un celular argentino, por ejemplo: +54 9 11 1234 5678, sin 0 ni 15.</p>
+     <div className={styles.placeGroup}><CityPicker label="Tu ciudad y país actuales" value={residence} onChange={setResidence}/><p className={styles.fieldHint}>Por defecto, a las 22 del día anterior en esta zona horaria. Podés cambiarlo e informar viajes desde tu cuenta.</p></div>
+    </>}
+    {step===3&&<>
+     <section className={styles.reviewBlock}><header><h2>Tu nacimiento</h2><button type="button" onClick={()=>go(1)}>Editar ↗</button></header><dl><div><dt>Fecha</dt><dd className={styles.reviewDate}>{dateLabel}</dd></div><div><dt>Hora local</dt><dd>{values.birth_hour}:{values.birth_min} · formato de 24 horas</dd></div><div><dt>Lugar</dt><dd>{birthLocation?.label}</dd></div></dl></section>
+     <section className={styles.reviewBlock}><header><h2>Tu cuenta y entrega</h2><button type="button" onClick={()=>go(2)}>Editar ↗</button></header><dl>{[['Nombre',values.full_name],['Correo',values.email],['WhatsApp',values.phone_whatsapp],['Ciudad actual',residence?.label??''],['Horario inicial','22:00 del día anterior · hora de tu ciudad']].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
+     <label className={styles.confirmCheck}><input type="checkbox" required checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><span>Confirmo que la fecha, la hora y el lugar de nacimiento son correctos.</span></label>
+     <p className={styles.fieldHint}>En el siguiente paso vas a ver el plan y el precio antes de pagar.</p>
+    </>}
+    {error&&<div ref={errorBox} tabIndex={-1} role="alert" className={styles.errorMsg}>{error}</div>}
+    <div className={styles.registrationActions}><Button type="submit" fullWidth disabled={busy}>{busy?'Preparando tu cuenta…':step===1?'Continuar con mis datos de contacto':step===2?'Revisar mis datos':'Continuar al pago'}</Button>{step>1&&<button type="button" disabled={busy} className={styles.backBtn} onClick={()=>go(step-1)}>← Volver sin perder mis datos</button>}</div>
+   </form>
+   <p className={styles.registrationPrivacy}>Tus datos se usan para preparar y entregar las lecturas. <Link href="/privacidad" target="_blank">Privacidad</Link> · <Link href="/terminos" target="_blank">Condiciones</Link></p>
+  </section>
+ </div></div>;
 }
